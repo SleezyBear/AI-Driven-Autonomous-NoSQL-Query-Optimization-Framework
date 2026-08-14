@@ -1,0 +1,7 @@
+/nosql/
+/.dependency-wheel-test/
+__pycache__/
+.mypy_cache/
+*.py[cod]
+.DS_Store
+.env

@@ -1,0 +1,7 @@
+services:
+  mongo-monitored:
+    profiles: ["paper"]
+    image: mongo:8.0
+    platform: linux/amd64
+    command: ["mongod", "--replSet", "rs-monitored", "--bind_ip_all"]
+
