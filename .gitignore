@@ -1,5 +1,6 @@
 /nosql/
 /.dependency-wheel-test/
+/.secrets/
 __pycache__/
 .mypy_cache/
 *.py[cod]

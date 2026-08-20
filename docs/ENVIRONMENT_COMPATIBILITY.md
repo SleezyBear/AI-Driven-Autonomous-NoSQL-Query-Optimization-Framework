@@ -38,6 +38,10 @@ Installed direct dependency versions match every Phase 0 pin: FastAPI 0.112.2, P
 
 Phase 0 passed on the actual Intel Mac environment using `make phase0-acceptance`.
 
+## Local MongoDB credentials
+
+The light development topology initializes separate observer and executor MongoDB credentials. They are local-development fixtures only. The executor is limited to metadata/index operations and has no document mutation or database/collection drop authority. Reinitializing this authentication setup requires recreating local MongoDB development volumes.
+
 ## Frontend runtime policy
 
 The current host exposes Node v25.2.1 and npm 11.6.2. These are not canonical project frontend runtimes. Before Phase 27 (Frontend Foundation), the project must pin and use Node 22 LTS and record the actual selected version here. Do not change Node during pre-frontend phases.

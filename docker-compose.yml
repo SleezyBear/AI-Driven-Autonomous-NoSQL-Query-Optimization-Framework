@@ -16,10 +16,19 @@ services:
       retries: 20
 
   mongo-monitored:
-    image: mongo:8.0
+    build:
+      context: infra/mongo
+      dockerfile: Dockerfile
+    image: autonomous-nosql-optimizer-mongo:8.0
     platform: linux/amd64
     profiles: ["light"]
-    command: ["mongod", "--replSet", "rs-monitored", "--bind_ip_all"]
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: control_plane_root
+      MONGO_INITDB_ROOT_PASSWORD: control_plane_root_dev_only
+    command: ["mongod", "--replSet", "rs-monitored", "--bind_ip_all", "--auth", "--keyFile", "/tmp/mongodb-replica-keyfile"]
+    secrets:
+      - source: mongodb_replica_keyfile
+        target: mongodb_replica_keyfile
     ports:
       - "27017:27017"
     healthcheck:
@@ -29,10 +38,19 @@ services:
       retries: 20
 
   mongo-evaluation:
-    image: mongo:8.0
+    build:
+      context: infra/mongo
+      dockerfile: Dockerfile
+    image: autonomous-nosql-optimizer-mongo:8.0
     platform: linux/amd64
     profiles: ["light", "replica-test"]
-    command: ["mongod", "--replSet", "rs-evaluation", "--bind_ip_all"]
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: control_plane_root
+      MONGO_INITDB_ROOT_PASSWORD: control_plane_root_dev_only
+    command: ["mongod", "--replSet", "rs-evaluation", "--bind_ip_all", "--auth", "--keyFile", "/tmp/mongodb-replica-keyfile"]
+    secrets:
+      - source: mongodb_replica_keyfile
+        target: mongodb_replica_keyfile
     ports:
       - "27018:27017"
     healthcheck:
@@ -74,6 +92,9 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    secrets:
+      - source: control_plane_master_key
+        target: control_plane_master_key
     healthcheck:
       test: ["CMD-SHELL", "python -c \"from urllib.request import urlopen; assert urlopen('http://localhost:8000/health/ready').status == 200\""]
       interval: 5s
@@ -89,6 +110,9 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    secrets:
+      - source: control_plane_master_key
+        target: control_plane_master_key
     healthcheck:
       test: ["CMD-SHELL", "python -c 'import sys; sys.exit(0)' "]
       interval: 5s
@@ -109,3 +133,8 @@ services:
       timeout: 5s
       retries: 20
 
+secrets:
+  control_plane_master_key:
+    file: ${CONTROL_PLANE_MASTER_KEY_FILE:-./.secrets/control_plane_master_key}
+  mongodb_replica_keyfile:
+    file: ${MONGODB_REPLICA_KEYFILE:-./.secrets/mongodb_replica_keyfile}
