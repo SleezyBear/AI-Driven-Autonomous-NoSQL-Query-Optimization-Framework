@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "minimum_meaningful_improvement": 0.05,
+  "metrics": {
+    "p50_latency_ms": {"direction": "LOWER_IS_BETTER", "comparison_mode": "LOG_RATIO", "relative_cap": 0.03, "absolute_cap": 25},
+    "p95_latency_ms": {"direction": "LOWER_IS_BETTER", "comparison_mode": "LOG_RATIO", "relative_cap": 0.03, "absolute_cap": 50},
+    "p99_latency_ms": {"direction": "LOWER_IS_BETTER", "comparison_mode": "LOG_RATIO", "relative_cap": 0.05, "absolute_cap": 100},
+    "throughput_ops_s": {"direction": "HIGHER_IS_BETTER", "comparison_mode": "LOG_RATIO", "relative_cap": 0.03},
+    "read_p95_latency_ms": {"direction": "LOWER_IS_BETTER", "comparison_mode": "LOG_RATIO", "relative_cap": 0.03, "absolute_cap": 50},
+    "write_p95_latency_ms": {"direction": "LOWER_IS_BETTER", "comparison_mode": "LOG_RATIO", "relative_cap": 0.03, "absolute_cap": 50},
+    "cpu_utilization": {"direction": "LOWER_IS_BETTER", "comparison_mode": "ABSOLUTE_DELTA", "relative_cap": 0.10, "absolute_cap": 0.03, "hard_upper_boundary": 0.80, "headroom_fraction": 0.10},
+    "memory_utilization": {"direction": "LOWER_IS_BETTER", "comparison_mode": "ABSOLUTE_DELTA", "relative_cap": 0.10, "absolute_cap": 0.03, "hard_upper_boundary": 0.85, "headroom_fraction": 0.10},
+    "disk_utilization": {"direction": "LOWER_IS_BETTER", "comparison_mode": "ABSOLUTE_DELTA", "relative_cap": 0.05, "absolute_cap": 0.02, "hard_upper_boundary": 0.80, "headroom_fraction": 0.10},
+    "replication_lag_ms": {"direction": "LOWER_IS_BETTER", "comparison_mode": "ABSOLUTE_DELTA", "relative_cap": 0.10, "absolute_cap": 250, "hard_upper_boundary": 5000, "headroom_fraction": 0.10},
+    "network_bytes_per_op": {"direction": "LOWER_IS_BETTER", "comparison_mode": "LOG_RATIO", "relative_cap": 0.05},
+    "disk_io_bytes_per_op": {"direction": "LOWER_IS_BETTER", "comparison_mode": "LOG_RATIO", "relative_cap": 0.05},
+    "documents_examined_per_returned": {"direction": "LOWER_IS_BETTER", "comparison_mode": "LOG_RATIO", "relative_cap": 0.10},
+    "keys_examined_per_returned": {"direction": "LOWER_IS_BETTER", "comparison_mode": "LOG_RATIO", "relative_cap": 0.10},
+    "lock_wait_ms_per_op": {"direction": "LOWER_IS_BETTER", "comparison_mode": "LOG_RATIO", "relative_cap": 0.05}
+  },
+  "zero_tolerance_invariants": ["result_correctness", "dataset_fingerprint", "data_integrity", "authorization_security_state", "durability_guarantees", "consistency_guarantees", "unexpected_application_data_mutation", "new_fatal_error_condition", "invalid_benchmark_environment_identity"]
+}

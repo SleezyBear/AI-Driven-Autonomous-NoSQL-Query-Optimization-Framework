@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
+from typing import Any
+
 from app.admission.models import BenchmarkProfile, ComparisonMode, MetricDirection, MetricPolicy, ProfileSettings
 
 PROFILES = {
@@ -10,20 +14,42 @@ PROFILES = {
     BenchmarkProfile.PUBLICATION: ProfileSettings(False, 60, 120, 10000, 0.95, pilot_aa_pairs=12, minimum_candidate_pairs=15, maximum_candidate_pairs=40),
 }
 
-DEFAULT_POLICIES = {
-    "p50_latency_ms": MetricPolicy("p50_latency_ms", MetricDirection.LOWER_IS_BETTER, ComparisonMode.LOG_RATIO, 0.03, 25),
-    "p95_latency_ms": MetricPolicy("p95_latency_ms", MetricDirection.LOWER_IS_BETTER, ComparisonMode.LOG_RATIO, 0.03, 50),
-    "p99_latency_ms": MetricPolicy("p99_latency_ms", MetricDirection.LOWER_IS_BETTER, ComparisonMode.LOG_RATIO, 0.05, 100),
-    "throughput_ops_s": MetricPolicy("throughput_ops_s", MetricDirection.HIGHER_IS_BETTER, ComparisonMode.LOG_RATIO, 0.03),
-    "read_p95_latency_ms": MetricPolicy("read_p95_latency_ms", MetricDirection.LOWER_IS_BETTER, ComparisonMode.LOG_RATIO, 0.03, 50),
-    "write_p95_latency_ms": MetricPolicy("write_p95_latency_ms", MetricDirection.LOWER_IS_BETTER, ComparisonMode.LOG_RATIO, 0.03, 50),
-    "cpu_utilization": MetricPolicy("cpu_utilization", MetricDirection.LOWER_IS_BETTER, ComparisonMode.ABSOLUTE_DELTA, 0.10, 0.03, 0.80, 0.10),
-    "memory_utilization": MetricPolicy("memory_utilization", MetricDirection.LOWER_IS_BETTER, ComparisonMode.ABSOLUTE_DELTA, 0.10, 0.03, 0.85, 0.10),
-    "disk_utilization": MetricPolicy("disk_utilization", MetricDirection.LOWER_IS_BETTER, ComparisonMode.ABSOLUTE_DELTA, 0.05, 0.02, 0.80, 0.10),
-    "replication_lag_ms": MetricPolicy("replication_lag_ms", MetricDirection.LOWER_IS_BETTER, ComparisonMode.ABSOLUTE_DELTA, 0.10, 250, 5000, 0.10),
-    "network_bytes_per_op": MetricPolicy("network_bytes_per_op", MetricDirection.LOWER_IS_BETTER, ComparisonMode.LOG_RATIO, 0.05),
-    "disk_io_bytes_per_op": MetricPolicy("disk_io_bytes_per_op", MetricDirection.LOWER_IS_BETTER, ComparisonMode.LOG_RATIO, 0.05),
-    "documents_examined_per_returned": MetricPolicy("documents_examined_per_returned", MetricDirection.LOWER_IS_BETTER, ComparisonMode.LOG_RATIO, 0.10),
-    "keys_examined_per_returned": MetricPolicy("keys_examined_per_returned", MetricDirection.LOWER_IS_BETTER, ComparisonMode.LOG_RATIO, 0.10),
-    "lock_wait_ms_per_op": MetricPolicy("lock_wait_ms_per_op", MetricDirection.LOWER_IS_BETTER, ComparisonMode.LOG_RATIO, 0.05),
-}
+POLICY_PATH = Path(__file__).with_name("default_policy.json")
+
+
+def load_default_policy(path: Path = POLICY_PATH) -> tuple[dict[str, MetricPolicy], tuple[str, ...]]:
+    """Load the frozen JSON policy and reject malformed or incomplete policy entries."""
+    document = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(document, dict) or document.get("version") != 1:
+        raise ValueError("Unsupported safety-policy document.")
+    minimum_benefit = document.get("minimum_meaningful_improvement")
+    metrics = document.get("metrics")
+    invariants = document.get("zero_tolerance_invariants")
+    if not isinstance(minimum_benefit, (int, float)) or not isinstance(metrics, dict) or not isinstance(invariants, list):
+        raise ValueError("Safety-policy document is malformed.")
+    policies: dict[str, MetricPolicy] = {}
+    for key, raw_value in metrics.items():
+        if not isinstance(key, str) or not isinstance(raw_value, dict):
+            raise ValueError("Safety-policy metric entry is malformed.")
+        policies[key] = MetricPolicy(
+            metric_key=key,
+            direction=MetricDirection(raw_value["direction"]),
+            comparison_mode=ComparisonMode(raw_value["comparison_mode"]),
+            relative_cap=_optional_number(raw_value.get("relative_cap")),
+            absolute_cap=_optional_number(raw_value.get("absolute_cap")),
+            hard_upper_boundary=_optional_number(raw_value.get("hard_upper_boundary")),
+            headroom_fraction=_optional_number(raw_value.get("headroom_fraction")),
+            minimum_benefit=float(minimum_benefit),
+        )
+    return policies, tuple(str(invariant) for invariant in invariants)
+
+
+def _optional_number(value: Any) -> float | None:
+    if value is None:
+        return None
+    if not isinstance(value, (int, float)):
+        raise ValueError("Safety-policy numerical values must be numbers.")
+    return float(value)
+
+
+DEFAULT_POLICIES, ZERO_TOLERANCE_INVARIANTS = load_default_policy()

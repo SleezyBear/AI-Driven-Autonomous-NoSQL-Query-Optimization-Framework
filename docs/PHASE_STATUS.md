@@ -18,7 +18,8 @@
 | 13 | CommerceBench | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/commercebench` |
 | 14 | Benchmark runner | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/benchmarks` |
 | 15 | Statistical engine | COMPLETE — PASS | `make phase15-acceptance` |
-| 16–56 | Not started | Not started | Defined in master implementation plan |
+| 16 | Safety policy | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/unit/admission/test_policy.py` |
+| 17–56 | Not started | Not started | Defined in master implementation plan |
 
 Phase progression is strictly one phase at a time: implement, run its test and prior tests, fix regressions, then update this document.
 
@@ -127,3 +128,9 @@ Phase progression is strictly one phase at a time: implement, run its test and p
 - Pre-Phase-15 audit: PASS; details and concrete evidence are in `docs/PRE_PHASE15_AUDIT.md`.
 - `make phase15-acceptance` passed all 13 statistical unit tests and reported every required synthetic verdict.
 - Full regression: 45 backend tests passed; Ruff, mypy, `pip check`, tracked-secret audit, and `make phase0-acceptance` passed.
+
+## Phase 16 record
+
+- Result: PASS
+- The frozen safety policy is loaded from `backend/app/admission/default_policy.json`; it carries relative, absolute, hard-boundary, and headroom limits separately from zero-tolerance invariants.
+- Phase acceptance: 16 admission-policy tests passed; full regression reached 48 backend tests with Ruff, mypy, and preflight passing.
