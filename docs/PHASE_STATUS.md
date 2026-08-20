@@ -19,7 +19,8 @@
 | 14 | Benchmark runner | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/benchmarks` |
 | 15 | Statistical engine | COMPLETE — PASS | `make phase15-acceptance` |
 | 16 | Safety policy | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/unit/admission/test_policy.py` |
-| 17–56 | Not started | Not started | Defined in master implementation plan |
+| 17 | Append-only ledger | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/ledger` |
+| 18–56 | Not started | Not started | Defined in master implementation plan |
 
 Phase progression is strictly one phase at a time: implement, run its test and prior tests, fix regressions, then update this document.
 
@@ -134,3 +135,9 @@ Phase progression is strictly one phase at a time: implement, run its test and p
 - Result: PASS
 - The frozen safety policy is loaded from `backend/app/admission/default_policy.json`; it carries relative, absolute, hard-boundary, and headroom limits separately from zero-tolerance invariants.
 - Phase acceptance: 16 admission-policy tests passed; full regression reached 48 backend tests with Ruff, mypy, and preflight passing.
+
+## Phase 17 record
+
+- Result: PASS
+- Each append-only entry records before, intended, and after state; forward and inverse actions; evidence hash; actor; and previous/current SHA-256 ledger hashes.
+- The chain verification test detects altered recorded state. Full regression reached 50 backend tests with Ruff, mypy, and preflight passing.
