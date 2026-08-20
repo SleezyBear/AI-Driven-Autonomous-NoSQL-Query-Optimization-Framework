@@ -31,7 +31,8 @@
 | 26 | Durable worker | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/worker` |
 | 27 | Frontend foundation | COMPLETE — PASS | `docker compose --profile light build frontend` and Node 22 Vitest |
 | 28 | Target dashboard | COMPLETE — PASS | Node 22 Vitest and `http://localhost:5173` |
-| 29–56 | Not started | Not started | Defined in master implementation plan |
+| 29 | Workload dashboard | COMPLETE — PASS | Node 22 Vitest and `http://localhost:5173` |
+| 30–56 | Not started | Not started | Defined in master implementation plan |
 
 Phase progression is strictly one phase at a time: implement, run its test and prior tests, fix regressions, then update this document.
 
@@ -218,3 +219,9 @@ Phase progression is strictly one phase at a time: implement, run its test and p
 - Result: PASS
 - The target dashboard displays health, version, topology, capabilities, telemetry source, namespace allowlist, deployment mode, evaluation target, and autonomy eligibility for the local monitored MongoDB target.
 - Expert Mode exposes the low-level evidence below every field. Node 22 Vitest reports two passing test files; the rebuilt dashboard is healthy at `http://localhost:5173`, and backend regression remains 82 passing tests.
+
+## Phase 29 record
+
+- Result: PASS
+- The workload dashboard displays throughput, read/write split, p50/p95/p99, query-shape distribution, CPU, memory, disk, and replication lag.
+- No workload telemetry window has been captured, so values truthfully report absent observations rather than synthetic metrics. Expert Mode reveals the associated normalized empty evidence. Node 22 Vitest reports three passing test files and backend regression remains 82 passing tests.
