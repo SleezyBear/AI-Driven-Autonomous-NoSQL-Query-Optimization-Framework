@@ -28,7 +28,8 @@
 | 23 | Experience memory | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/experience` |
 | 24 | Complete diagnosis pipeline | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/pipeline` |
 | 25 | Optimization state machine | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/state_machine` |
-| 26–56 | Not started | Not started | Defined in master implementation plan |
+| 26 | Durable worker | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/worker` |
+| 27–56 | Not started | Not started | Defined in master implementation plan |
 
 Phase progression is strictly one phase at a time: implement, run its test and prior tests, fix regressions, then update this document.
 
@@ -197,3 +198,9 @@ Phase progression is strictly one phase at a time: implement, run its test and p
 - Result: PASS
 - The explicit optimization lifecycle contains every specified state, including deployment, monitoring, rollback, rollback-blocked, and failed terminal outcomes.
 - Only declared transitions are permitted; invalid transitions raise without changing the current state or its history. Full regression reached 80 backend tests with Ruff, mypy, and preflight passing.
+
+## Phase 26 record
+
+- Result: PASS
+- PostgreSQL jobs use `FOR UPDATE SKIP LOCKED` claims, leases, heartbeats, and owner-guarded completion; an expired lease can be recovered after worker failure.
+- Two concurrent workers completed 100 jobs exactly once. Migration `0003_durable_worker_jobs` is applied to the local development database; full regression reached 82 backend tests with Ruff, mypy, and preflight passing.
