@@ -32,7 +32,8 @@
 | 27 | Frontend foundation | COMPLETE — PASS | `docker compose --profile light build frontend` and Node 22 Vitest |
 | 28 | Target dashboard | COMPLETE — PASS | Node 22 Vitest and `http://localhost:5173` |
 | 29 | Workload dashboard | COMPLETE — PASS | Node 22 Vitest and `http://localhost:5173` |
-| 30–56 | Not started | Not started | Defined in master implementation plan |
+| 30 | Run dashboard | COMPLETE — PASS | Node 22 Vitest and `http://localhost:5173/runs` |
+| 31–56 | Not started | Not started | Defined in master implementation plan |
 
 Phase progression is strictly one phase at a time: implement, run its test and prior tests, fix regressions, then update this document.
 
@@ -225,3 +226,9 @@ Phase progression is strictly one phase at a time: implement, run its test and p
 - Result: PASS
 - The workload dashboard displays throughput, read/write split, p50/p95/p99, query-shape distribution, CPU, memory, disk, and replication lag.
 - No workload telemetry window has been captured, so values truthfully report absent observations rather than synthetic metrics. Expert Mode reveals the associated normalized empty evidence. Node 22 Vitest reports three passing test files and backend regression remains 82 passing tests.
+
+## Phase 30 record
+
+- Result: PASS
+- The run dashboard displays diagnosis, candidates, AI ranking, evaluation, statistical verdict, safety verdict, approval, deployment, post-deployment result, and rollback status as one full decision trail.
+- No run has been selected, so the dashboard records the absent evidence truthfully rather than fabricating a decision. Expert Mode exposes every evidence state. Node 22 Vitest reports four passing test files and backend regression remains 82 passing tests.
