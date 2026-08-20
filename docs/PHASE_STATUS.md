@@ -16,7 +16,8 @@
 | 11 | Metrics collection | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/metrics` |
 | 12 | Workload snapshots | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/workloads` |
 | 13 | CommerceBench | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/commercebench` |
-| 14–56 | Not started | Not started | Defined in master implementation plan |
+| 14 | Benchmark runner | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/benchmarks` |
+| 15–56 | Not started | Not started | Defined in master implementation plan |
 
 Phase progression is strictly one phase at a time: implement, run its test and prior tests, fix regressions, then update this document.
 
@@ -112,3 +113,9 @@ Phase progression is strictly one phase at a time: implement, run its test and p
 - Result: PASS
 - CommerceBench produces deterministic `customers`, `products`, `orders`, `events`, and `inventory` datasets from seed 42 for the smoke, standard, and publication profiles.
 - Two resets of the same profile produce exactly matching dataset fingerprints.
+
+## Phase 14 record
+
+- Result: PASS
+- Every paired comparison restores the requested snapshot before each arm, yielding the required restore → baseline → restore → candidate sequence.
+- Each persisted arm record includes seed, dataset and initial-state fingerprints, environment fingerprint, metrics, arm, and pair ID; the acceptance test proves matching initial fingerprints.
