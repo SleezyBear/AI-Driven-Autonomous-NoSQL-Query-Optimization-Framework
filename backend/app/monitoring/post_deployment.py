@@ -8,6 +8,7 @@ from typing import Protocol
 
 from app.metrics.collector import MetricSnapshot
 from app.rollback.owned_index import RollbackRequest, RollbackResult, RollbackStatus
+from app.monitoring.workload_shift import WorkloadShiftDecision, WorkloadShiftDetector
 from app.workloads.snapshots import Share
 
 
@@ -80,3 +81,18 @@ class PostDeploymentMonitor:
         rollback_result = await self._rollback_coordinator.rollback(rollback_request)
         status = MonitoringStatus.ROLLED_BACK if rollback_result.status is RollbackStatus.ROLLED_BACK else MonitoringStatus.ROLLBACK_BLOCKED
         return MonitoringResult(status, baseline, observed, True, workload_shift_detected, attribution, rollback_result)
+
+    async def assess_with_shift_detection(
+        self,
+        baseline: MonitoringWindow,
+        observed: MonitoringWindow,
+        catastrophic_regression: bool,
+        rollback_request: RollbackRequest | None,
+        shift_detector: WorkloadShiftDetector,
+    ) -> tuple[MonitoringResult, WorkloadShiftDecision]:
+        """Use sustained TVD evidence before withholding statistical attribution."""
+        shift = await shift_detector.observe(baseline.workload_distribution, observed.workload_distribution)
+        result = await self.assess(
+            baseline, observed, catastrophic_regression, shift.shift_detected, rollback_request
+        )
+        return result, shift

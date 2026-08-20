@@ -38,7 +38,8 @@
 | 33 | Owned index rollback | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/rollback` |
 | 34 | Post-deployment monitoring | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/monitoring` |
 | 35 | Query-settings index hints | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/production/test_query_settings.py` |
-| 36–56 | Not started | Not started | Defined in master implementation plan |
+| 36 | Workload shift detection | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/monitoring` |
+| 37–56 | Not started | Not started | Defined in master implementation plan |
 
 Phase progression is strictly one phase at a time: implement, run its test and prior tests, fix regressions, then update this document.
 
@@ -269,3 +270,10 @@ Phase progression is strictly one phase at a time: implement, run its test and p
 - The typed query-settings boundary exposes only `allowedIndexes`; it cannot express `reject` or `queryFramework`. Every referenced index must already exist.
 - An existing query setting always requires current evidence-bound human approval before replacement. Rollback verifies ownership and unchanged current state, then restores the exact prior allowed-index state (including absence).
 - Focused production tests pass; full regression reached 99 backend tests with Ruff, mypy, dependency preflight, and whitespace validation passing.
+
+## Phase 36 record
+
+- Result: PASS
+- Workload-shape distributions use total variation distance over their union with the fixed `0.20` threshold. A shift is admitted only after three consecutive threshold breaches.
+- A sustained shift requests re-analysis once per shift episode and exposes no production-mutation capability. A non-shift window resets the sequence.
+- Focused monitoring tests pass; full regression reached 102 backend tests with Ruff, mypy, dependency preflight, and whitespace validation passing.
