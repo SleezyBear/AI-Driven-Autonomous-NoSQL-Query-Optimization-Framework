@@ -40,7 +40,8 @@
 | 35 | Query-settings index hints | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/production/test_query_settings.py` |
 | 36 | Workload shift detection | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/monitoring` |
 | 37 | Query rewrite recommendations | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/recommendations` |
-| 38–56 | Not started | Not started | Defined in master implementation plan |
+| 38 | Index cleanup advisor | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/recommendations` |
+| 39–56 | Not started | Not started | Defined in master implementation plan |
 
 Phase progression is strictly one phase at a time: implement, run its test and prior tests, fix regressions, then update this document.
 
@@ -285,3 +286,10 @@ Phase progression is strictly one phase at a time: implement, run its test and p
 - Query rewrites are recommendation-only and have no execution or production-mutation capability.
 - Sandbox equivalence checks count, document identity, canonical document hashes, and ordering whenever ordering is semantically required. Any mismatch returns `REJECTED_SAFETY_INVARIANT`.
 - Focused recommendation tests pass; full regression reached 105 backend tests with Ruff, mypy, dependency preflight, and whitespace validation passing.
+
+## Phase 38 record
+
+- Result: PASS
+- The cleanup advisor detects unused, duplicate, redundant-prefix, and stale optimizer-owned indexes from literal-free metadata and observed-use evidence.
+- It is recommendation-only: primary-key indexes are excluded and neither human-created nor optimizer-owned indexes can be dropped by this phase.
+- Focused recommendation tests pass; full regression reached 108 backend tests with Ruff, mypy, dependency preflight, and whitespace validation passing.
