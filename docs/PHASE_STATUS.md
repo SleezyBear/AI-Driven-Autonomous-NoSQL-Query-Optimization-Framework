@@ -21,7 +21,8 @@
 | 16 | Safety policy | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/unit/admission/test_policy.py` |
 | 17 | Append-only ledger | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/ledger` |
 | 18 | Typed action schemas | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/actions` |
-| 19–56 | Not started | Not started | Defined in master implementation plan |
+| 19 | Deterministic index generator | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/candidates` |
+| 20–56 | Not started | Not started | Defined in master implementation plan |
 
 Phase progression is strictly one phase at a time: implement, run its test and prior tests, fix regressions, then update this document.
 
@@ -148,3 +149,9 @@ Phase progression is strictly one phase at a time: implement, run its test and p
 - Result: PASS
 - `CREATE_INDEX` and `SET_QUERY_SETTINGS_INDEX_HINT` are frozen typed schemas with exact typed inverse actions.
 - Autonomous index validation rejects unique, TTL, sparse, partial, text, wildcard, geo, hashed, non-B-tree, and more-than-five-field variants. Full regression reached 61 backend tests with Ruff, mypy, and preflight passing.
+
+## Phase 19 record
+
+- Result: PASS
+- MongoDB `find` candidates use only Equality → Sort → Range, Equality → Range → Sort, and Equality → Sort patterns, in deterministic order with SHA-256 fingerprints.
+- Candidates are de-duplicated, schema-valid, and capped at five fields and five candidates per query shape. Full regression reached 64 backend tests with Ruff, mypy, and preflight passing.
