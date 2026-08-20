@@ -10,6 +10,7 @@ import httpx
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from app.isolation.lock import BenchmarkOllamaIsolationLock, shared_measurement_lock
+from app.security.privacy import PrivacyBoundary, PrivacyMode
 
 
 class StructuredOutput(BaseModel):
@@ -59,12 +60,13 @@ class AIProvider(ABC):
 class OllamaAIProvider(AIProvider):
     """Ollama HTTP provider that requests strict JSON at temperature zero."""
 
-    def __init__(self, client: httpx.AsyncClient, model: str, embedding_model: str, timeout_seconds: float = 30.0, isolation_lock: BenchmarkOllamaIsolationLock = shared_measurement_lock) -> None:
+    def __init__(self, client: httpx.AsyncClient, model: str, embedding_model: str, timeout_seconds: float = 30.0, isolation_lock: BenchmarkOllamaIsolationLock = shared_measurement_lock, privacy_boundary: PrivacyBoundary | None = None) -> None:
         self._client = client
         self._model = model
         self._embedding_model = embedding_model
         self._timeout_seconds = timeout_seconds
         self._isolation_lock = isolation_lock
+        self._privacy_boundary = privacy_boundary or PrivacyBoundary(PrivacyMode.LOCAL_NORMALIZED)
 
     async def diagnose(self, evidence: str) -> Diagnosis:
         return await self._structured("Diagnose this deterministic evidence:\n" + evidence, Diagnosis)
@@ -77,7 +79,7 @@ class OllamaAIProvider(AIProvider):
 
     async def embed_experience(self, experience: str) -> ExperienceEmbedding:
         async with self._isolation_lock.ollama_request():
-            response = await self._client.post("/api/embed", json={"model": self._embedding_model, "input": experience}, timeout=self._timeout_seconds)
+            response = await self._client.post("/api/embed", json={"model": self._embedding_model, "input": self._privacy_boundary.sanitize_prompt_text(experience)}, timeout=self._timeout_seconds)
             response.raise_for_status()
             embeddings = response.json().get("embeddings")
         if not isinstance(embeddings, list) or len(embeddings) != 1:
@@ -85,6 +87,7 @@ class OllamaAIProvider(AIProvider):
         return ExperienceEmbedding(vector=tuple(embeddings[0]))
 
     async def _structured(self, prompt: str, output_type: type[StructuredOutput]) -> StructuredOutput:
+        prompt = self._privacy_boundary.sanitize_prompt_text(prompt)
         for attempt in range(2):
             async with self._isolation_lock.ollama_request():
                 response = await self._client.post("/api/generate", json={"model": self._model, "prompt": prompt, "stream": False, "format": "json", "options": {"temperature": 0}}, timeout=self._timeout_seconds)

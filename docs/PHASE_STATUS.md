@@ -42,7 +42,8 @@
 | 37 | Query rewrite recommendations | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/recommendations` |
 | 38 | Index cleanup advisor | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/recommendations` |
 | 39 | Configuration advisor | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/recommendations` |
-| 40–56 | Not started | Not started | Defined in master implementation plan |
+| 40 | Privacy modes | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/security backend/tests/ai` |
+| 41–56 | Not started | Not started | Defined in master implementation plan |
 
 Phase progression is strictly one phase at a time: implement, run its test and prior tests, fix regressions, then update this document.
 
@@ -301,3 +302,10 @@ Phase progression is strictly one phase at a time: implement, run its test and p
 - Configuration recommendations are restricted to the frozen, known control-plane whitelist and always require separate human approval; this phase contains no apply capability.
 - Unknown LLM parameter names, out-of-range values, and any candidate that weakens security, durability, consistency, or data integrity are rejected.
 - Focused recommendation tests pass; full regression reached 111 backend tests with Ruff, mypy, dependency preflight, and whitespace validation passing.
+
+## Phase 40 record
+
+- Result: PASS
+- `LOCAL_NORMALIZED` retains only value type tokens, while `STRICT_HASHED` retains deterministic SHA-256 representations. Both preserve structure without retaining literals.
+- The privacy boundary protects log payloads, PostgreSQL evidence serialization, and captured Ollama prompt/embed requests. Tests prove known email and identifier values are absent from all three.
+- Focused privacy and AI tests pass; full regression reached 114 backend tests with Ruff, mypy, dependency preflight, and whitespace validation passing.
