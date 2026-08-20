@@ -22,7 +22,8 @@
 | 17 | Append-only ledger | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/ledger` |
 | 18 | Typed action schemas | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/actions` |
 | 19 | Deterministic index generator | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/candidates` |
-| 20–56 | Not started | Not started | Defined in master implementation plan |
+| 20 | Sandbox index evaluation | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/evaluation` |
+| 21–56 | Not started | Not started | Defined in master implementation plan |
 
 Phase progression is strictly one phase at a time: implement, run its test and prior tests, fix regressions, then update this document.
 
@@ -155,3 +156,9 @@ Phase progression is strictly one phase at a time: implement, run its test and p
 - Result: PASS
 - MongoDB `find` candidates use only Equality → Sort → Range, Equality → Range → Sort, and Equality → Sort patterns, in deterministic order with SHA-256 fingerprints.
 - Candidates are de-duplicated, schema-valid, and capped at five fields and five candidates per query shape. Full regression reached 64 backend tests with Ruff, mypy, and preflight passing.
+
+## Phase 20 record
+
+- Result: PASS
+- Sandbox evaluation performs copy → verify → apply → benchmark → admission → cleanup only through the evaluation adapter; identical target IDs or topology identities are rejected before candidate application.
+- Resource-budget violations are rejected, cleanup runs after benchmark failure, and tests prove the monitored adapter remains unchanged. Full regression reached 68 backend tests with Ruff, mypy, and preflight passing.
