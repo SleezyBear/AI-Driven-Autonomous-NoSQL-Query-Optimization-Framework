@@ -30,7 +30,8 @@
 | 25 | Optimization state machine | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/state_machine` |
 | 26 | Durable worker | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/worker` |
 | 27 | Frontend foundation | COMPLETE — PASS | `docker compose --profile light build frontend` and Node 22 Vitest |
-| 28–56 | Not started | Not started | Defined in master implementation plan |
+| 28 | Target dashboard | COMPLETE — PASS | Node 22 Vitest and `http://localhost:5173` |
+| 29–56 | Not started | Not started | Defined in master implementation plan |
 
 Phase progression is strictly one phase at a time: implement, run its test and prior tests, fix regressions, then update this document.
 
@@ -211,3 +212,9 @@ Phase progression is strictly one phase at a time: implement, run its test and p
 - Result: PASS
 - The frontend foundation uses React 18, TypeScript, Vite 5, React Router, TanStack Query, Tailwind, shadcn/ui configuration, Recharts, Vitest, and Playwright dependencies under `frontend/package.json`.
 - The project is pinned to Node 22.14.0 and npm 10 inside the linux/amd64 Docker build and `.nvmrc`; the host Node 25 installation remains unchanged. The Docker production build and local Vitest suite pass; backend regression remains 82 passing tests.
+
+## Phase 28 record
+
+- Result: PASS
+- The target dashboard displays health, version, topology, capabilities, telemetry source, namespace allowlist, deployment mode, evaluation target, and autonomy eligibility for the local monitored MongoDB target.
+- Expert Mode exposes the low-level evidence below every field. Node 22 Vitest reports two passing test files; the rebuilt dashboard is healthy at `http://localhost:5173`, and backend regression remains 82 passing tests.
