@@ -23,7 +23,8 @@
 | 18 | Typed action schemas | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/actions` |
 | 19 | Deterministic index generator | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/candidates` |
 | 20 | Sandbox index evaluation | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/evaluation` |
-| 21–56 | Not started | Not started | Defined in master implementation plan |
+| 21 | Ollama provider | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/ai` |
+| 22–56 | Not started | Not started | Defined in master implementation plan |
 
 Phase progression is strictly one phase at a time: implement, run its test and prior tests, fix regressions, then update this document.
 
@@ -162,3 +163,9 @@ Phase progression is strictly one phase at a time: implement, run its test and p
 - Result: PASS
 - Sandbox evaluation performs copy → verify → apply → benchmark → admission → cleanup only through the evaluation adapter; identical target IDs or topology identities are rejected before candidate application.
 - Resource-budget violations are rejected, cleanup runs after benchmark failure, and tests prove the monitored adapter remains unchanged. Full regression reached 68 backend tests with Ruff, mypy, and preflight passing.
+
+## Phase 21 record
+
+- Result: PASS
+- `AIProvider` has structured-only `diagnose`, `rank_candidates`, `explain_decision`, and `embed_experience` methods; `OllamaAIProvider` uses temperature 0 and retries malformed structured output exactly once.
+- `FakeAIProvider` supports deterministic offline tests, and no provider exposes database execution authority. Full regression reached 71 backend tests with Ruff, mypy, and preflight passing.
