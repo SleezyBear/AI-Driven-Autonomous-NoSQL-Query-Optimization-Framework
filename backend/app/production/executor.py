@@ -78,7 +78,12 @@ class ProductionExecutor:
                 before_state=before_state,
                 intended_state=intended_state,
                 after_state=before_state,
-                forward_action={"phase": "PREPARED", **request.action.model_dump(mode="json")},
+                forward_action={
+                    "phase": "PREPARED",
+                    "target_id": request.target_id,
+                    "index_fingerprint": _index_fingerprint(request.action),
+                    **request.action.model_dump(mode="json"),
+                },
                 inverse_action=inverse.model_dump(mode="json"),
                 evidence_hash=request.evidence_hash,
                 actor=request.actor,
@@ -96,7 +101,12 @@ class ProductionExecutor:
                 before_state=before_state,
                 intended_state=intended_state,
                 after_state=after_state,
-                forward_action={"phase": "APPLIED", **request.action.model_dump(mode="json")},
+                forward_action={
+                    "phase": "APPLIED",
+                    "target_id": request.target_id,
+                    "index_fingerprint": _index_fingerprint(request.action),
+                    **request.action.model_dump(mode="json"),
+                },
                 inverse_action=inverse.model_dump(mode="json"),
                 evidence_hash=request.evidence_hash,
                 actor=request.actor,
@@ -144,3 +154,9 @@ def _state_hash(state: dict[str, Any]) -> str:
     """Return a canonical SHA-256 fingerprint for current-state verification."""
     serialized = json.dumps(state, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(serialized.encode("utf-8")).hexdigest()
+
+
+def _index_fingerprint(action: CreateIndexAction) -> str:
+    """Fingerprint the exact safe index specification the ledger owns."""
+    payload = {"name": action.index_name, "keys": [(field.field, field.direction) for field in action.fields]}
+    return hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()

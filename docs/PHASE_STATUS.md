@@ -35,7 +35,8 @@
 | 30 | Run dashboard | COMPLETE — PASS | Node 22 Vitest and `http://localhost:5173/runs` |
 | 31 | Approval flow | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/approvals` |
 | 32 | Production executor | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/production` |
-| 33–56 | Not started | Not started | Defined in master implementation plan |
+| 33 | Owned index rollback | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/rollback` |
+| 34–56 | Not started | Not started | Defined in master implementation plan |
 
 Phase progression is strictly one phase at a time: implement, run its test and prior tests, fix regressions, then update this document.
 
@@ -246,3 +247,9 @@ Phase progression is strictly one phase at a time: implement, run its test and p
 - Result: PASS
 - The restricted executor locks its target; verifies admitted production eligibility, evidence-bound approval, and current state; records `PREPARED`; executes only a typed `CREATE_INDEX`; verifies resulting state; records `APPLIED`; and unlocks in all cases.
 - Raw actions, stale approval, unadmitted actions, state drift, and pre-existing indexes fail before target modification. Focused production tests pass; full regression reached 90 backend tests with Ruff, mypy, and preflight passing.
+
+## Phase 33 record
+
+- Result: PASS
+- Index rollback requires an `APPLIED` optimizer ledger entry with matching target, namespace, exact index specification/fingerprint, and current state without relevant drift.
+- Any failed ownership check returns `ROLLBACK_BLOCKED` without mutation. Tests cover both a successful exact owned rollback and drift rejection; full regression reached 92 backend tests with Ruff, mypy, and preflight passing.
