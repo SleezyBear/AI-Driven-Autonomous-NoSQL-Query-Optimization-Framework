@@ -41,7 +41,8 @@
 | 36 | Workload shift detection | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/monitoring` |
 | 37 | Query rewrite recommendations | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/recommendations` |
 | 38 | Index cleanup advisor | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/recommendations` |
-| 39–56 | Not started | Not started | Defined in master implementation plan |
+| 39 | Configuration advisor | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/recommendations` |
+| 40–56 | Not started | Not started | Defined in master implementation plan |
 
 Phase progression is strictly one phase at a time: implement, run its test and prior tests, fix regressions, then update this document.
 
@@ -293,3 +294,10 @@ Phase progression is strictly one phase at a time: implement, run its test and p
 - The cleanup advisor detects unused, duplicate, redundant-prefix, and stale optimizer-owned indexes from literal-free metadata and observed-use evidence.
 - It is recommendation-only: primary-key indexes are excluded and neither human-created nor optimizer-owned indexes can be dropped by this phase.
 - Focused recommendation tests pass; full regression reached 108 backend tests with Ruff, mypy, dependency preflight, and whitespace validation passing.
+
+## Phase 39 record
+
+- Result: PASS
+- Configuration recommendations are restricted to the frozen, known control-plane whitelist and always require separate human approval; this phase contains no apply capability.
+- Unknown LLM parameter names, out-of-range values, and any candidate that weakens security, durability, consistency, or data integrity are rejected.
+- Focused recommendation tests pass; full regression reached 111 backend tests with Ruff, mypy, dependency preflight, and whitespace validation passing.
