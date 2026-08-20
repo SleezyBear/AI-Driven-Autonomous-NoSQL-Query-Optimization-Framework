@@ -44,7 +44,7 @@ The light development topology initializes separate observer and executor MongoD
 
 ## Frontend runtime policy
 
-The current host exposes Node v25.2.1 and npm 11.6.2. These are not canonical project frontend runtimes. Before Phase 27 (Frontend Foundation), the project must pin and use Node 22 LTS and record the actual selected version here. Do not change Node during pre-frontend phases.
+The current host exposes Node v25.2.1 and npm 11.6.2. These are not canonical project frontend runtimes. Phase 27 pins the project to Node 22.14.0 (npm 10) in `.nvmrc`, `frontend/package.json`, and the linux/amd64 frontend Docker build image. The host-wide Node 25 installation remains unchanged.
 
 ## Intel benchmark isolation and development topology
 
