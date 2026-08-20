@@ -44,7 +44,8 @@
 | 39 | Configuration advisor | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/recommendations` |
 | 40 | Privacy modes | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/security backend/tests/ai` |
 | 41 | NoSQLBench | COMPLETE — PASS | `make nosqlbench-smoke` |
-| 42–56 | Not started | Not started | Defined in master implementation plan |
+| 42 | SafetyBench | COMPLETE — PASS | `make safetybench` |
+| 43–56 | Not started | Not started | Defined in master implementation plan |
 
 Phase progression is strictly one phase at a time: implement, run its test and prior tests, fix regressions, then update this document.
 
@@ -317,3 +318,10 @@ Phase progression is strictly one phase at a time: implement, run its test and p
 - NoSQLBench 5.25.13 runs as a pinned `linux/amd64` Docker image, isolated from the root `nosql` virtual environment and Python dependency set.
 - The containerized stdout smoke workload completed its three cycles (`0`, `1`, `2`) at 100%. The JNA native-access warning is informational and did not affect completion.
 - Static container-configuration test passed; full regression reached 115 backend tests with Ruff, mypy, dependency preflight, and whitespace validation passing.
+
+## Phase 42 record
+
+- Result: PASS
+- SafetyBench freezes the exact outcomes for ten safety scenarios: useful index (admitted), minority-query regression (safety-invariant rejection), write amplification (regression rejection), tiny benefit (insufficient-benefit rejection), noisy environment (inconclusive), forbidden AI proposal and document mutation (safety-invariant rejection), rollback drift (rollback blocked), useful query setting (approval required), and local regression despite aggregate gain (safety-invariant rejection).
+- The suite is an outcome harness only: it has no deployment or document-mutation capability.
+- Focused SafetyBench verification reports 11 passing tests; full regression reached 126 backend tests with Ruff, mypy, dependency preflight, and whitespace validation passing.
