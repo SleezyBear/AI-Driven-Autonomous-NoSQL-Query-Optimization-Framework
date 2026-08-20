@@ -76,7 +76,7 @@ class RestoreQuerySettingsIndexHintAction(ActionSchema):
     database: str = Field(min_length=1, max_length=63)
     collection: str = Field(min_length=1, max_length=255)
     query_shape_hash: str = Field(min_length=1, max_length=255)
-    index_hint: str | None = Field(default=None, min_length=1, max_length=255)
+    allowed_indexes: tuple[str, ...] | None = Field(default=None, min_length=1, max_length=5)
 
 
 class SetQuerySettingsIndexHintAction(ActionSchema):
@@ -86,8 +86,8 @@ class SetQuerySettingsIndexHintAction(ActionSchema):
     database: str = Field(min_length=1, max_length=63)
     collection: str = Field(min_length=1, max_length=255)
     query_shape_hash: str = Field(min_length=1, max_length=255)
-    index_hint: str = Field(min_length=1, max_length=255)
-    previous_index_hint: str | None = Field(default=None, min_length=1, max_length=255)
+    allowed_indexes: tuple[str, ...] = Field(min_length=1, max_length=5)
+    previous_allowed_indexes: tuple[str, ...] | None = Field(default=None, min_length=1, max_length=5)
 
     def inverse(self) -> RestoreQuerySettingsIndexHintAction:
         """Restore exactly the prior hint, including an intentionally absent setting."""
@@ -95,5 +95,5 @@ class SetQuerySettingsIndexHintAction(ActionSchema):
             database=self.database,
             collection=self.collection,
             query_shape_hash=self.query_shape_hash,
-            index_hint=self.previous_index_hint,
+            allowed_indexes=self.previous_allowed_indexes,
         )

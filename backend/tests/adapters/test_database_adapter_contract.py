@@ -60,6 +60,13 @@ class InMemoryMongoDatabase:
     def get_collection(self, name: str) -> InMemoryMongoCollection:
         return self.collections.setdefault(name, InMemoryMongoCollection())
 
+    def aggregate(self, pipeline: list[dict[str, object]]) -> InMemoryIndexCursor:
+        assert pipeline == [{"$querySettings": {}}]
+        return InMemoryIndexCursor([])
+
+    async def command(self, command: dict[str, object]) -> dict[str, object]:
+        return {"ok": 1}
+
 
 class InMemoryMongoClient:
     """Test-double client with one named database."""
@@ -68,7 +75,7 @@ class InMemoryMongoClient:
         self.database = InMemoryMongoDatabase()
 
     def get_database(self, name: str) -> InMemoryMongoDatabase:
-        assert name == "commerce"
+        assert name in {"admin", "commerce"}
         return self.database
 
 
@@ -97,4 +104,3 @@ async def test_adapter_contract_for_typed_index_operations(adapter: DatabaseAdap
 
 def test_database_adapter_has_no_arbitrary_command_method() -> None:
     assert not hasattr(DatabaseAdapter, "execute_arbitrary_command")
-

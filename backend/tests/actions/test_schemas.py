@@ -31,8 +31,19 @@ def test_index_field_count_and_non_btree_key_type_are_rejected() -> None:
 
 
 def test_query_settings_inverse_restores_exact_prior_state() -> None:
-    action = SetQuerySettingsIndexHintAction(database="commerce", collection="orders", query_shape_hash="shape", index_hint="new_hint", previous_index_hint="old_hint")
+    action = SetQuerySettingsIndexHintAction(database="commerce", collection="orders", query_shape_hash="shape", allowed_indexes=("new_hint",), previous_allowed_indexes=("old_hint",))
     inverse = action.inverse()
 
     assert isinstance(inverse, RestoreQuerySettingsIndexHintAction)
-    assert inverse.index_hint == "old_hint"
+    assert inverse.allowed_indexes == ("old_hint",)
+
+
+def test_query_settings_action_exposes_only_allowed_indexes() -> None:
+    with pytest.raises(ValidationError):
+        SetQuerySettingsIndexHintAction(
+            database="commerce",
+            collection="orders",
+            query_shape_hash="shape",
+            allowed_indexes=("new_hint",),
+            reject=True,
+        )

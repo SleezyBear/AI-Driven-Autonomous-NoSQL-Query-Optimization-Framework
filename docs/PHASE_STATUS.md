@@ -36,7 +36,9 @@
 | 31 | Approval flow | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/approvals` |
 | 32 | Production executor | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/production` |
 | 33 | Owned index rollback | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/rollback` |
-| 34–56 | Not started | Not started | Defined in master implementation plan |
+| 34 | Post-deployment monitoring | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/monitoring` |
+| 35 | Query-settings index hints | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/production/test_query_settings.py` |
+| 36–56 | Not started | Not started | Defined in master implementation plan |
 
 Phase progression is strictly one phase at a time: implement, run its test and prior tests, fix regressions, then update this document.
 
@@ -253,3 +255,17 @@ Phase progression is strictly one phase at a time: implement, run its test and p
 - Result: PASS
 - Index rollback requires an `APPLIED` optimizer ledger entry with matching target, namespace, exact index specification/fingerprint, and current state without relevant drift.
 - Any failed ownership check returns `ROLLBACK_BLOCKED` without mutation. Tests cover both a successful exact owned rollback and drift rejection; full regression reached 92 backend tests with Ruff, mypy, and preflight passing.
+
+## Phase 34 record
+
+- Result: PASS
+- Monitoring windows retain latency, throughput, resource, error, timeout, replication, and literal-free workload-distribution evidence.
+- Workload shifts are explicitly marked and withhold causal attribution. A catastrophic regression invokes the ownership-verified rollback path even when a workload shift is present.
+- Focused monitoring tests pass; full regression reached 95 backend tests with Ruff, mypy, dependency preflight, and whitespace validation passing.
+
+## Phase 35 record
+
+- Result: PASS
+- The typed query-settings boundary exposes only `allowedIndexes`; it cannot express `reject` or `queryFramework`. Every referenced index must already exist.
+- An existing query setting always requires current evidence-bound human approval before replacement. Rollback verifies ownership and unchanged current state, then restores the exact prior allowed-index state (including absence).
+- Focused production tests pass; full regression reached 99 backend tests with Ruff, mypy, dependency preflight, and whitespace validation passing.
