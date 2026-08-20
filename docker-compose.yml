@@ -133,6 +133,14 @@ services:
       timeout: 5s
       retries: 20
 
+  nosqlbench-smoke:
+    image: nosqlbench/nosqlbench:5.25.13
+    platform: linux/amd64
+    profiles: ["bench"]
+    volumes:
+      - ./benchmarks/nosqlbench:/workloads:ro
+    command: ["run", "driver=stdout", "workload=/workloads/smoke.yaml", "cycles=3"]
+
 secrets:
   control_plane_master_key:
     file: ${CONTROL_PLANE_MASTER_KEY_FILE:-./.secrets/control_plane_master_key}

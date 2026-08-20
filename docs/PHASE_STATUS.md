@@ -43,7 +43,8 @@
 | 38 | Index cleanup advisor | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/recommendations` |
 | 39 | Configuration advisor | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/recommendations` |
 | 40 | Privacy modes | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/security backend/tests/ai` |
-| 41–56 | Not started | Not started | Defined in master implementation plan |
+| 41 | NoSQLBench | COMPLETE — PASS | `make nosqlbench-smoke` |
+| 42–56 | Not started | Not started | Defined in master implementation plan |
 
 Phase progression is strictly one phase at a time: implement, run its test and prior tests, fix regressions, then update this document.
 
@@ -309,3 +310,10 @@ Phase progression is strictly one phase at a time: implement, run its test and p
 - `LOCAL_NORMALIZED` retains only value type tokens, while `STRICT_HASHED` retains deterministic SHA-256 representations. Both preserve structure without retaining literals.
 - The privacy boundary protects log payloads, PostgreSQL evidence serialization, and captured Ollama prompt/embed requests. Tests prove known email and identifier values are absent from all three.
 - Focused privacy and AI tests pass; full regression reached 114 backend tests with Ruff, mypy, dependency preflight, and whitespace validation passing.
+
+## Phase 41 record
+
+- Result: PASS
+- NoSQLBench 5.25.13 runs as a pinned `linux/amd64` Docker image, isolated from the root `nosql` virtual environment and Python dependency set.
+- The containerized stdout smoke workload completed its three cycles (`0`, `1`, `2`) at 100%. The JNA native-access warning is informational and did not affect completion.
+- Static container-configuration test passed; full regression reached 115 backend tests with Ruff, mypy, dependency preflight, and whitespace validation passing.

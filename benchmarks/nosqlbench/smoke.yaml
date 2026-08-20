@@ -1,0 +1,5 @@
+description: "Three-cycle NoSQLBench smoke workload; uses the container's stdout driver only."
+bindings:
+  cycle: Identity()
+statements:
+  - "nosqlbench-smoke-cycle={cycle}\\n"

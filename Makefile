@@ -1,7 +1,7 @@
 PYTHON := ./nosql/bin/python
 PIP := ./nosql/bin/python -m pip
 
-.PHONY: preflight wheel-test phase0-acceptance phase15-acceptance pip-check test dev replica-test-env paper-env acceptance
+.PHONY: preflight wheel-test phase0-acceptance phase15-acceptance pip-check test dev replica-test-env paper-env acceptance nosqlbench-smoke
 
 preflight:
 	$(PIP) check
@@ -39,3 +39,6 @@ paper-env:
 acceptance:
 	$(PIP) check
 	$(MAKE) phase0-acceptance
+
+nosqlbench-smoke:
+	docker compose --profile bench run --rm nosqlbench-smoke
