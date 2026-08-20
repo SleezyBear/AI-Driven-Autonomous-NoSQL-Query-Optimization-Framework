@@ -20,7 +20,8 @@
 | 15 | Statistical engine | COMPLETE — PASS | `make phase15-acceptance` |
 | 16 | Safety policy | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/unit/admission/test_policy.py` |
 | 17 | Append-only ledger | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/ledger` |
-| 18–56 | Not started | Not started | Defined in master implementation plan |
+| 18 | Typed action schemas | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/actions` |
+| 19–56 | Not started | Not started | Defined in master implementation plan |
 
 Phase progression is strictly one phase at a time: implement, run its test and prior tests, fix regressions, then update this document.
 
@@ -141,3 +142,9 @@ Phase progression is strictly one phase at a time: implement, run its test and p
 - Result: PASS
 - Each append-only entry records before, intended, and after state; forward and inverse actions; evidence hash; actor; and previous/current SHA-256 ledger hashes.
 - The chain verification test detects altered recorded state. Full regression reached 50 backend tests with Ruff, mypy, and preflight passing.
+
+## Phase 18 record
+
+- Result: PASS
+- `CREATE_INDEX` and `SET_QUERY_SETTINGS_INDEX_HINT` are frozen typed schemas with exact typed inverse actions.
+- Autonomous index validation rejects unique, TTL, sparse, partial, text, wildcard, geo, hashed, non-B-tree, and more-than-five-field variants. Full regression reached 61 backend tests with Ruff, mypy, and preflight passing.

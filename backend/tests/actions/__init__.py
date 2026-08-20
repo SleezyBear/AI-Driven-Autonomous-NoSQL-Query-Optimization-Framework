@@ -1,0 +1,1 @@
+"""Typed action schema tests."""
