@@ -24,7 +24,8 @@
 | 19 | Deterministic index generator | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/candidates` |
 | 20 | Sandbox index evaluation | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/evaluation` |
 | 21 | Ollama provider | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/ai` |
-| 22–56 | Not started | Not started | Defined in master implementation plan |
+| 22 | Benchmark/Ollama isolation | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/isolation` |
+| 23–56 | Not started | Not started | Defined in master implementation plan |
 
 Phase progression is strictly one phase at a time: implement, run its test and prior tests, fix regressions, then update this document.
 
@@ -169,3 +170,9 @@ Phase progression is strictly one phase at a time: implement, run its test and p
 - Result: PASS
 - `AIProvider` has structured-only `diagnose`, `rank_candidates`, `explain_decision`, and `embed_experience` methods; `OllamaAIProvider` uses temperature 0 and retries malformed structured output exactly once.
 - `FakeAIProvider` supports deterministic offline tests, and no provider exposes database execution authority. Full regression reached 71 backend tests with Ruff, mypy, and preflight passing.
+
+## Phase 22 record
+
+- Result: PASS
+- A shared async lock serializes controlled benchmark measurement windows and Ollama generation/embedding requests on the Intel development machine.
+- Both wait-order tests pass: Ollama waits for a benchmark, and a benchmark waits for active Ollama inference. Full regression reached 73 backend tests with Ruff, mypy, and preflight passing.

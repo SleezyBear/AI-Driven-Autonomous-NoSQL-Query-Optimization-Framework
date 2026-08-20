@@ -8,6 +8,7 @@ from typing import Awaitable, Callable, Protocol
 
 from app.actions.schemas import CreateIndexAction
 from app.adapters.contracts import DatabaseAdapter, IndexSpec, Namespace
+from app.isolation.lock import BenchmarkOllamaIsolationLock, shared_measurement_lock
 
 
 class SandboxStatus(str, Enum):
@@ -55,9 +56,10 @@ class EvaluationStateCopier(Protocol):
 class SandboxIndexEvaluator:
     """Apply, benchmark, admit, and always clean up a candidate only in evaluation."""
 
-    def __init__(self, state_copier: EvaluationStateCopier, evaluation_adapter: DatabaseAdapter) -> None:
+    def __init__(self, state_copier: EvaluationStateCopier, evaluation_adapter: DatabaseAdapter, isolation_lock: BenchmarkOllamaIsolationLock = shared_measurement_lock) -> None:
         self._state_copier = state_copier
         self._evaluation_adapter = evaluation_adapter
+        self._isolation_lock = isolation_lock
 
     async def evaluate(
         self,
@@ -87,7 +89,8 @@ class SandboxIndexEvaluator:
         try:
             await self._evaluation_adapter.create_index(namespace, index)
             applied = True
-            benchmark_result = await benchmark()
+            async with self._isolation_lock.benchmark_window():
+                benchmark_result = await benchmark()
             return SandboxResult(SandboxStatus.COMPLETED, benchmark_result, admit(benchmark_result))
         except Exception:
             return SandboxResult(SandboxStatus.FAILED, reason="sandbox evaluation failed")

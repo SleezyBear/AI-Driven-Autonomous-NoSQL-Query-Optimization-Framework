@@ -9,6 +9,8 @@ from typing import cast
 import httpx
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
+from app.isolation.lock import BenchmarkOllamaIsolationLock, shared_measurement_lock
+
 
 class StructuredOutput(BaseModel):
     """Strict output base: providers may return analysis, never executable commands."""
@@ -57,11 +59,12 @@ class AIProvider(ABC):
 class OllamaAIProvider(AIProvider):
     """Ollama HTTP provider that requests strict JSON at temperature zero."""
 
-    def __init__(self, client: httpx.AsyncClient, model: str, embedding_model: str, timeout_seconds: float = 30.0) -> None:
+    def __init__(self, client: httpx.AsyncClient, model: str, embedding_model: str, timeout_seconds: float = 30.0, isolation_lock: BenchmarkOllamaIsolationLock = shared_measurement_lock) -> None:
         self._client = client
         self._model = model
         self._embedding_model = embedding_model
         self._timeout_seconds = timeout_seconds
+        self._isolation_lock = isolation_lock
 
     async def diagnose(self, evidence: str) -> Diagnosis:
         return await self._structured("Diagnose this deterministic evidence:\n" + evidence, Diagnosis)
@@ -73,18 +76,20 @@ class OllamaAIProvider(AIProvider):
         return await self._structured("Explain this deterministic decision:\n" + decision, DecisionExplanation)
 
     async def embed_experience(self, experience: str) -> ExperienceEmbedding:
-        response = await self._client.post("/api/embed", json={"model": self._embedding_model, "input": experience}, timeout=self._timeout_seconds)
-        response.raise_for_status()
-        embeddings = response.json().get("embeddings")
+        async with self._isolation_lock.ollama_request():
+            response = await self._client.post("/api/embed", json={"model": self._embedding_model, "input": experience}, timeout=self._timeout_seconds)
+            response.raise_for_status()
+            embeddings = response.json().get("embeddings")
         if not isinstance(embeddings, list) or len(embeddings) != 1:
             raise ValueError("Ollama embedding response is malformed.")
         return ExperienceEmbedding(vector=tuple(embeddings[0]))
 
     async def _structured(self, prompt: str, output_type: type[StructuredOutput]) -> StructuredOutput:
         for attempt in range(2):
-            response = await self._client.post("/api/generate", json={"model": self._model, "prompt": prompt, "stream": False, "format": "json", "options": {"temperature": 0}}, timeout=self._timeout_seconds)
-            response.raise_for_status()
-            raw_output = response.json().get("response")
+            async with self._isolation_lock.ollama_request():
+                response = await self._client.post("/api/generate", json={"model": self._model, "prompt": prompt, "stream": False, "format": "json", "options": {"temperature": 0}}, timeout=self._timeout_seconds)
+                response.raise_for_status()
+                raw_output = response.json().get("response")
             if isinstance(raw_output, str):
                 try:
                     return cast(StructuredOutput, output_type.model_validate(json.loads(raw_output)))
