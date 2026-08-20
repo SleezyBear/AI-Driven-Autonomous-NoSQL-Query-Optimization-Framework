@@ -27,7 +27,8 @@
 | 22 | Benchmark/Ollama isolation | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/isolation` |
 | 23 | Experience memory | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/experience` |
 | 24 | Complete diagnosis pipeline | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/pipeline` |
-| 25–56 | Not started | Not started | Defined in master implementation plan |
+| 25 | Optimization state machine | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/state_machine` |
+| 26–56 | Not started | Not started | Defined in master implementation plan |
 
 Phase progression is strictly one phase at a time: implement, run its test and prior tests, fix regressions, then update this document.
 
@@ -190,3 +191,9 @@ Phase progression is strictly one phase at a time: implement, run its test and p
 - Result: PASS
 - The pipeline performs snapshot → deterministic evidence → deterministic candidate generation → experience retrieval → LLM diagnosis → LLM ranking → sandbox evaluation → deterministic admission.
 - Only known deterministic candidates reach sandbox evaluation, and the initial evaluation set is capped at three. Full regression reached 76 backend tests with Ruff, mypy, and preflight passing.
+
+## Phase 25 record
+
+- Result: PASS
+- The explicit optimization lifecycle contains every specified state, including deployment, monitoring, rollback, rollback-blocked, and failed terminal outcomes.
+- Only declared transitions are permitted; invalid transitions raise without changing the current state or its history. Full regression reached 80 backend tests with Ruff, mypy, and preflight passing.
