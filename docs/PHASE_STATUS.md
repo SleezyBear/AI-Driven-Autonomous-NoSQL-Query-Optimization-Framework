@@ -39,7 +39,8 @@
 | 34 | Post-deployment monitoring | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/monitoring` |
 | 35 | Query-settings index hints | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/production/test_query_settings.py` |
 | 36 | Workload shift detection | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/monitoring` |
-| 37–56 | Not started | Not started | Defined in master implementation plan |
+| 37 | Query rewrite recommendations | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/recommendations` |
+| 38–56 | Not started | Not started | Defined in master implementation plan |
 
 Phase progression is strictly one phase at a time: implement, run its test and prior tests, fix regressions, then update this document.
 
@@ -277,3 +278,10 @@ Phase progression is strictly one phase at a time: implement, run its test and p
 - Workload-shape distributions use total variation distance over their union with the fixed `0.20` threshold. A shift is admitted only after three consecutive threshold breaches.
 - A sustained shift requests re-analysis once per shift episode and exposes no production-mutation capability. A non-shift window resets the sequence.
 - Focused monitoring tests pass; full regression reached 102 backend tests with Ruff, mypy, dependency preflight, and whitespace validation passing.
+
+## Phase 37 record
+
+- Result: PASS
+- Query rewrites are recommendation-only and have no execution or production-mutation capability.
+- Sandbox equivalence checks count, document identity, canonical document hashes, and ordering whenever ordering is semantically required. Any mismatch returns `REJECTED_SAFETY_INVARIANT`.
+- Focused recommendation tests pass; full regression reached 105 backend tests with Ruff, mypy, dependency preflight, and whitespace validation passing.
