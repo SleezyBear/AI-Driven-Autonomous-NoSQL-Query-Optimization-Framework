@@ -17,7 +17,8 @@
 | 12 | Workload snapshots | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/workloads` |
 | 13 | CommerceBench | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/commercebench` |
 | 14 | Benchmark runner | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/benchmarks` |
-| 15–56 | Not started | Not started | Defined in master implementation plan |
+| 15 | Statistical engine | COMPLETE — PASS | `make phase15-acceptance` |
+| 16–56 | Not started | Not started | Defined in master implementation plan |
 
 Phase progression is strictly one phase at a time: implement, run its test and prior tests, fix regressions, then update this document.
 
@@ -119,3 +120,10 @@ Phase progression is strictly one phase at a time: implement, run its test and p
 - Result: PASS
 - Every paired comparison restores the requested snapshot before each arm, yielding the required restore → baseline → restore → candidate sequence.
 - Each persisted arm record includes seed, dataset and initial-state fingerprints, environment fingerprint, metrics, arm, and pair ID; the acceptance test proves matching initial fingerprints.
+
+## Phase 15 record
+
+- Result: PASS
+- Pre-Phase-15 audit: PASS; details and concrete evidence are in `docs/PRE_PHASE15_AUDIT.md`.
+- `make phase15-acceptance` passed all 13 statistical unit tests and reported every required synthetic verdict.
+- Full regression: 45 backend tests passed; Ruff, mypy, `pip check`, tracked-secret audit, and `make phase0-acceptance` passed.

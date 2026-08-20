@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Any, cast
 
 import jwt
-from argon2 import PasswordHasher
+from argon2 import PasswordHasher, Type
 from argon2.exceptions import InvalidHashError, VerifyMismatchError
 
 
@@ -36,18 +37,26 @@ class PasswordService:
     """Hash and verify passwords with Argon2."""
 
     def __init__(self) -> None:
-        self._hasher = PasswordHasher()
+        self._hasher = PasswordHasher(type=Type.ID)
 
     def hash_password(self, password: str) -> str:
         """Return an Argon2 password hash."""
+        self._validate_password(password)
         return cast(str, self._hasher.hash(password))
 
     def verify_password(self, password_hash: str, password: str) -> bool:
         """Return whether a password matches an Argon2 hash."""
+        if not 12 <= len(password) <= 128:
+            return False
         try:
             return cast(bool, self._hasher.verify(password_hash, password))
         except (InvalidHashError, VerifyMismatchError):
             return False
+
+    @staticmethod
+    def _validate_password(password: str) -> None:
+        if not 12 <= len(password) <= 128:
+            raise ValueError("Password length must be between 12 and 128 characters.")
 
 
 class JwtService:
@@ -56,21 +65,25 @@ class JwtService:
     def __init__(self, signing_key: str) -> None:
         self._signing_key = signing_key
 
-    def issue(self, principal: Principal) -> str:
+    def issue(self, principal: Principal, token_type: str = "access") -> str:
         """Issue a signed HS256 token for a principal."""
+        if token_type not in {"access", "refresh"}:
+            raise ValueError("Unsupported JWT token type.")
+        now = datetime.now(timezone.utc)
+        lifetime = timedelta(minutes=15) if token_type == "access" else timedelta(days=7)
         token = jwt.encode(
-            {"sub": principal.user_id, "role": principal.role.value},
+            {"sub": principal.user_id, "role": principal.role.value, "token_type": token_type, "iat": now, "exp": now + lifetime},
             self._signing_key,
             algorithm="HS256",
         )
         return cast(str, token)
 
-    def verify(self, token: str) -> Principal:
+    def verify(self, token: str, expected_token_type: str = "access") -> Principal:
         """Verify a signed token and return its fixed-role principal."""
-        claims = cast(dict[str, Any], jwt.decode(token, self._signing_key, algorithms=["HS256"]))
+        claims = cast(dict[str, Any], jwt.decode(token, self._signing_key, algorithms=["HS256"], options={"require": ["exp", "iat", "sub", "token_type"]}))
         subject = claims.get("sub")
         role_value = claims.get("role")
-        if not isinstance(subject, str) or not isinstance(role_value, str):
+        if not isinstance(subject, str) or not isinstance(role_value, str) or claims.get("token_type") != expected_token_type:
             raise AuthorizationError("JWT is missing required principal claims.")
         try:
             return Principal(user_id=subject, role=Role(role_value))
@@ -89,4 +102,3 @@ def require_approval_authority(principal: Principal, requested_by_user_id: str) 
     require_role(principal, Role.APPROVER, Role.ADMIN)
     if principal.user_id == requested_by_user_id:
         raise AuthorizationError("An operator cannot approve their own request.")
-

@@ -1,7 +1,7 @@
 PYTHON := ./nosql/bin/python
 PIP := ./nosql/bin/python -m pip
 
-.PHONY: preflight wheel-test phase0-acceptance pip-check test dev replica-test-env paper-env acceptance
+.PHONY: preflight wheel-test phase0-acceptance phase15-acceptance pip-check test dev replica-test-env paper-env acceptance
 
 preflight:
 	$(PIP) check
@@ -17,6 +17,9 @@ wheel-test:
 phase0-acceptance: wheel-test preflight
 	$(PYTHON) -c 'import sys; assert sys.version_info[:2] == (3, 10)'
 	$(PYTHON) -c 'import platform; assert platform.machine() == "x86_64"'
+
+phase15-acceptance:
+	$(PYTHON) scripts/phase15_acceptance.py
 
 pip-check:
 	$(PIP) check

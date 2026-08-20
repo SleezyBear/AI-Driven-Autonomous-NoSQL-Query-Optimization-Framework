@@ -18,12 +18,20 @@ class BenchmarkArm(str, Enum):
     CANDIDATE = "candidate"
 
 
+class BenchmarkArmOrder(str, Enum):
+    """Persisted execution order for one paired comparison."""
+
+    AB = "AB"
+    BA = "BA"
+
+
 @dataclass(frozen=True)
 class BenchmarkRunRecord:
     """The persisted evidence for one arm of a paired benchmark comparison."""
 
     pair_id: str
     arm: BenchmarkArm
+    arm_order: BenchmarkArmOrder
     seed: int
     dataset_fingerprint: str
     initial_dataset_fingerprint: str
@@ -70,21 +78,22 @@ class BenchmarkRunner:
         environment_fingerprint: EnvironmentFingerprint,
         baseline: Callable[[], MetricSnapshot],
         candidate: Callable[[], MetricSnapshot],
+        arm_order: BenchmarkArmOrder = BenchmarkArmOrder.AB,
     ) -> tuple[BenchmarkRunRecord, BenchmarkRunRecord]:
         """Restore → baseline → restore → candidate and persist both measurement arms."""
-        baseline_initial_fingerprint = self._restore(dataset_snapshot)
-        baseline_record = self._record(
-            pair_id, BenchmarkArm.BASELINE, dataset_snapshot, baseline_initial_fingerprint, environment_fingerprint, baseline()
-        )
-        self._result_store.persist(baseline_record)
-
-        candidate_initial_fingerprint = self._restore(dataset_snapshot)
-        candidate_record = self._record(
-            pair_id, BenchmarkArm.CANDIDATE, dataset_snapshot, candidate_initial_fingerprint, environment_fingerprint, candidate()
-        )
-        if baseline_initial_fingerprint != candidate_initial_fingerprint:
+        arms = ((BenchmarkArm.BASELINE, baseline), (BenchmarkArm.CANDIDATE, candidate))
+        if arm_order == BenchmarkArmOrder.BA:
+            arms = tuple(reversed(arms))
+        records: dict[BenchmarkArm, BenchmarkRunRecord] = {}
+        for arm, measurement in arms:
+            initial_fingerprint = self._restore(dataset_snapshot)
+            record = self._record(pair_id, arm, arm_order, dataset_snapshot, initial_fingerprint, environment_fingerprint, measurement())
+            self._result_store.persist(record)
+            records[arm] = record
+        baseline_record = records[BenchmarkArm.BASELINE]
+        candidate_record = records[BenchmarkArm.CANDIDATE]
+        if baseline_record.initial_dataset_fingerprint != candidate_record.initial_dataset_fingerprint:
             raise ValueError("baseline and candidate must begin with matching dataset fingerprints")
-        self._result_store.persist(candidate_record)
         return baseline_record, candidate_record
 
     def _restore(self, snapshot: DatasetSnapshot) -> str:
@@ -97,6 +106,7 @@ class BenchmarkRunner:
     def _record(
         pair_id: str,
         arm: BenchmarkArm,
+        arm_order: BenchmarkArmOrder,
         snapshot: DatasetSnapshot,
         initial_dataset_fingerprint: str,
         environment_fingerprint: EnvironmentFingerprint,
@@ -105,6 +115,7 @@ class BenchmarkRunner:
         return BenchmarkRunRecord(
             pair_id=pair_id,
             arm=arm,
+            arm_order=arm_order,
             seed=snapshot.seed,
             dataset_fingerprint=snapshot.fingerprint,
             initial_dataset_fingerprint=initial_dataset_fingerprint,

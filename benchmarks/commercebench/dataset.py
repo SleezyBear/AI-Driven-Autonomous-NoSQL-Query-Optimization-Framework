@@ -10,6 +10,7 @@ from random import Random
 from typing import Any
 
 COMMERCEBENCH_SEED = 42
+GENERATOR_VERSION = "1"
 COLLECTIONS = ("customers", "products", "orders", "events", "inventory")
 
 
@@ -93,6 +94,14 @@ class CommerceBench:
     def _fingerprint(
         profile: WorkloadProfile, collections: tuple[tuple[str, tuple[dict[str, Any], ...]], ...]
     ) -> str:
-        payload = {"profile": profile.value, "seed": COMMERCEBENCH_SEED, "collections": dict(collections)}
+        payload = {
+            "generator_version": GENERATOR_VERSION,
+            "profile": profile.value,
+            "seed": COMMERCEBENCH_SEED,
+            "collection_counts": {name: len(documents) for name, documents in collections},
+            "index_state": {},
+            "query_settings_state": {},
+            "collections": dict(collections),
+        }
         serialized = json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
         return hashlib.sha256(serialized.encode("utf-8")).hexdigest()

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from secrets import token_urlsafe
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
@@ -18,7 +20,7 @@ from app.auth.security import (
 
 router = APIRouter()
 bearer_scheme = HTTPBearer(auto_error=False)
-_jwt_service = JwtService("phase-5-development-signing-key")
+_jwt_service = JwtService(__import__("os").environ.get("JWT_SIGNING_KEY", token_urlsafe(48)))
 
 
 class ApprovalRequest(BaseModel):
@@ -66,4 +68,3 @@ def approve_request(
 def issue_test_token(principal: Principal) -> str:
     """Issue test-only endpoint tokens through the same JWT implementation."""
     return _jwt_service.issue(principal)
-
