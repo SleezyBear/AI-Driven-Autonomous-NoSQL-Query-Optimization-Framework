@@ -14,7 +14,8 @@
 | 9 | Telemetry abstraction | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/telemetry` |
 | 10 | Query shape registry | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/query_shapes` |
 | 11 | Metrics collection | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/metrics` |
-| 12–56 | Not started | Not started | Defined in master implementation plan |
+| 12 | Workload snapshots | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/workloads` |
+| 13–56 | Not started | Not started | Defined in master implementation plan |
 
 Phase progression is strictly one phase at a time: implement, run its test and prior tests, fix regressions, then update this document.
 
@@ -98,3 +99,9 @@ Phase progression is strictly one phase at a time: implement, run its test and p
 - Result: PASS
 - A real monitored-MongoDB read workload produced nonempty p50, p95, p99, and read-throughput measurements.
 - Snapshots also capture resource, replication, scan, lock, error, and timeout fields without enabling profiler collection.
+
+## Phase 12 record
+
+- Result: PASS
+- Immutable snapshots capture operation mix, query-shape and execution-time shares, global metrics, critical shapes, and an environment fingerprint.
+- Protection includes explicitly affected and manually critical shapes, plus every shape at or above 1% of operations or execution time; the 90/9/1 acceptance distribution protects all three.
