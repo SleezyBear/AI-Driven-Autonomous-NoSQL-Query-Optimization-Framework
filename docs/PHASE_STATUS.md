@@ -26,7 +26,8 @@
 | 21 | Ollama provider | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/ai` |
 | 22 | Benchmark/Ollama isolation | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/isolation` |
 | 23 | Experience memory | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/experience` |
-| 24–56 | Not started | Not started | Defined in master implementation plan |
+| 24 | Complete diagnosis pipeline | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/pipeline` |
+| 25–56 | Not started | Not started | Defined in master implementation plan |
 
 Phase progression is strictly one phase at a time: implement, run its test and prior tests, fix regressions, then update this document.
 
@@ -183,3 +184,9 @@ Phase progression is strictly one phase at a time: implement, run its test and p
 - Result: PASS
 - Experience records use EmbeddingGemma-compatible 768-dimensional vectors, with pgvector-backed PostgreSQL columns added by migration `0002_experience_memory_pgvector`.
 - Memory can only reprioritize existing candidates; disabling it changes ranking at most and leaves deterministic admission unchanged. Full regression reached 75 backend tests with Ruff, mypy, and preflight passing.
+
+## Phase 24 record
+
+- Result: PASS
+- The pipeline performs snapshot → deterministic evidence → deterministic candidate generation → experience retrieval → LLM diagnosis → LLM ranking → sandbox evaluation → deterministic admission.
+- Only known deterministic candidates reach sandbox evaluation, and the initial evaluation set is capped at three. Full regression reached 76 backend tests with Ruff, mypy, and preflight passing.
