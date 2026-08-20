@@ -33,7 +33,8 @@
 | 28 | Target dashboard | COMPLETE — PASS | Node 22 Vitest and `http://localhost:5173` |
 | 29 | Workload dashboard | COMPLETE — PASS | Node 22 Vitest and `http://localhost:5173` |
 | 30 | Run dashboard | COMPLETE — PASS | Node 22 Vitest and `http://localhost:5173/runs` |
-| 31–56 | Not started | Not started | Defined in master implementation plan |
+| 31 | Approval flow | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/approvals` |
+| 32–56 | Not started | Not started | Defined in master implementation plan |
 
 Phase progression is strictly one phase at a time: implement, run its test and prior tests, fix regressions, then update this document.
 
@@ -232,3 +233,9 @@ Phase progression is strictly one phase at a time: implement, run its test and p
 - Result: PASS
 - The run dashboard displays diagnosis, candidates, AI ranking, evaluation, statistical verdict, safety verdict, approval, deployment, post-deployment result, and rollback status as one full decision trail.
 - No run has been selected, so the dashboard records the absent evidence truthfully rather than fabricating a decision. Expert Mode exposes every evidence state. Node 22 Vitest reports four passing test files and backend regression remains 82 passing tests.
+
+## Phase 31 record
+
+- Result: PASS
+- Semi-autonomous actions require human approval bound immutably to their action ID and evidence hash.
+- A changed evidence hash marks the prior approval stale and fails closed before deployment authorization. Focused approval tests pass; full regression reached 85 backend tests with Ruff, mypy, and preflight passing.
