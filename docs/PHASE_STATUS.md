@@ -15,7 +15,8 @@
 | 10 | Query shape registry | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/query_shapes` |
 | 11 | Metrics collection | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/metrics` |
 | 12 | Workload snapshots | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/workloads` |
-| 13–56 | Not started | Not started | Defined in master implementation plan |
+| 13 | CommerceBench | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/commercebench` |
+| 14–56 | Not started | Not started | Defined in master implementation plan |
 
 Phase progression is strictly one phase at a time: implement, run its test and prior tests, fix regressions, then update this document.
 
@@ -105,3 +106,9 @@ Phase progression is strictly one phase at a time: implement, run its test and p
 - Result: PASS
 - Immutable snapshots capture operation mix, query-shape and execution-time shares, global metrics, critical shapes, and an environment fingerprint.
 - Protection includes explicitly affected and manually critical shapes, plus every shape at or above 1% of operations or execution time; the 90/9/1 acceptance distribution protects all three.
+
+## Phase 13 record
+
+- Result: PASS
+- CommerceBench produces deterministic `customers`, `products`, `orders`, `events`, and `inventory` datasets from seed 42 for the smoke, standard, and publication profiles.
+- Two resets of the same profile produce exactly matching dataset fingerprints.
