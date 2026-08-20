@@ -1,7 +1,7 @@
 PYTHON := ./nosql/bin/python
 PIP := ./nosql/bin/python -m pip
 
-.PHONY: preflight wheel-test phase0-acceptance phase15-acceptance pip-check test dev replica-test-env paper-env acceptance nosqlbench-smoke safetybench
+.PHONY: preflight wheel-test phase0-acceptance phase15-acceptance pip-check test dev replica-test-env paper-env acceptance nosqlbench-smoke safetybench phase43-acceptance
 
 preflight:
 	$(PIP) check
@@ -45,3 +45,6 @@ nosqlbench-smoke:
 
 safetybench:
 	$(PYTHON) -m pytest backend/tests/safetybench
+
+phase43-acceptance:
+	$(PYTHON) -m pytest backend/tests/ablations

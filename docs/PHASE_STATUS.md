@@ -45,7 +45,8 @@
 | 40 | Privacy modes | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/security backend/tests/ai` |
 | 41 | NoSQLBench | COMPLETE — PASS | `make nosqlbench-smoke` |
 | 42 | SafetyBench | COMPLETE — PASS | `make safetybench` |
-| 43–56 | Not started | Not started | Defined in master implementation plan |
+| 43 | Baselines and ablations | COMPLETE — PASS | `make phase43-acceptance` |
+| 44–56 | Not started | Not started | Defined in master implementation plan |
 
 Phase progression is strictly one phase at a time: implement, run its test and prior tests, fix regressions, then update this document.
 
@@ -325,3 +326,11 @@ Phase progression is strictly one phase at a time: implement, run its test and p
 - SafetyBench freezes the exact outcomes for ten safety scenarios: useful index (admitted), minority-query regression (safety-invariant rejection), write amplification (regression rejection), tiny benefit (insufficient-benefit rejection), noisy environment (inconclusive), forbidden AI proposal and document mutation (safety-invariant rejection), rollback drift (rollback blocked), useful query setting (approval required), and local regression despite aggregate gain (safety-invariant rejection).
 - The suite is an outcome harness only: it has no deployment or document-mutation capability.
 - Focused SafetyBench verification reports 11 passing tests; full regression reached 126 backend tests with Ruff, mypy, dependency preflight, and whitespace validation passing.
+
+## Phase 43 record
+
+- Result: PASS
+- The frozen matrix contains B0_NATIVE, B1_DETERMINISTIC_NO_GATE, B2_LLM_RANK_NO_GATE, B3_DETERMINISTIC_WITH_GATE, B4_LLM_WITH_GATE, and B5_FULL_WITH_EXPERIENCE in that order.
+- Every no-gate mode is enforced as sandbox-only and cannot be production-deployment eligible. The experiment ledger itself has no deployment or database-mutation capability.
+- Per-mode aggregation collects mean performance improvement, unsafe acceptances, safe rejections, regressions prevented, mean evaluation overhead, mean AI overhead, rollbacks, and inconclusive rate.
+- Focused ablation verification reports 7 passing tests; full regression reached 133 backend tests with Ruff, mypy, dependency preflight, and whitespace validation passing.
