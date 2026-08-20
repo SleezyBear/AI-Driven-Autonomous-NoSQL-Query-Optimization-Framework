@@ -34,7 +34,8 @@
 | 29 | Workload dashboard | COMPLETE — PASS | Node 22 Vitest and `http://localhost:5173` |
 | 30 | Run dashboard | COMPLETE — PASS | Node 22 Vitest and `http://localhost:5173/runs` |
 | 31 | Approval flow | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/approvals` |
-| 32–56 | Not started | Not started | Defined in master implementation plan |
+| 32 | Production executor | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/production` |
+| 33–56 | Not started | Not started | Defined in master implementation plan |
 
 Phase progression is strictly one phase at a time: implement, run its test and prior tests, fix regressions, then update this document.
 
@@ -239,3 +240,9 @@ Phase progression is strictly one phase at a time: implement, run its test and p
 - Result: PASS
 - Semi-autonomous actions require human approval bound immutably to their action ID and evidence hash.
 - A changed evidence hash marks the prior approval stale and fails closed before deployment authorization. Focused approval tests pass; full regression reached 85 backend tests with Ruff, mypy, and preflight passing.
+
+## Phase 32 record
+
+- Result: PASS
+- The restricted executor locks its target; verifies admitted production eligibility, evidence-bound approval, and current state; records `PREPARED`; executes only a typed `CREATE_INDEX`; verifies resulting state; records `APPLIED`; and unlocks in all cases.
+- Raw actions, stale approval, unadmitted actions, state drift, and pre-existing indexes fail before target modification. Focused production tests pass; full regression reached 90 backend tests with Ruff, mypy, and preflight passing.
