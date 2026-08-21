@@ -53,7 +53,8 @@
 | 48 | Security suite | COMPLETE — PASS | `make phase48-acceptance` |
 | 49 | Crash recovery | COMPLETE — PASS | `make phase49-acceptance` |
 | 50 | Intel-Mac resource protection | COMPLETE — PASS | `make phase50-acceptance` |
-| 51–56 | Not started | Not started | Defined in master implementation plan |
+| 51 | Hardware manifest | COMPLETE — PASS | `make phase51-acceptance` |
+| 52–56 | Not started | Not started | Defined in master implementation plan |
 
 Phase progression is strictly one phase at a time: implement, run its test and prior tests, fix regressions, then update this document.
 
@@ -393,3 +394,11 @@ Phase progression is strictly one phase at a time: implement, run its test and p
 - `HeavyTaskLimiter` is used by `DurableJobWorker.run_heavy_task`; independent target mutation lanes are limited separately, while the same target cannot execute concurrent mutations.
 - Existing Phase 22 shared isolation continues to serialize Ollama and controlled benchmark windows; Phase 50's limiter prevents additional heavy-worker fan-out.
 - Focused resource verification reports 6 passing tests; full regression reached 179 backend tests with Ruff, mypy, dependency preflight, and whitespace validation passing.
+
+## Phase 51 record
+
+- Result: PASS
+- Every paired benchmark-arm artifact now includes an immutable hardware manifest captured before measurement begins.
+- The manifest records macOS, CPU, architecture, physical and logical CPU counts, RAM, Docker version and allocations, live MongoDB and PostgreSQL versions, Python, NumPy, SciPy, PyMongo, Ollama, and configured chat and embedding models.
+- Live collection fails closed when a mandatory fact cannot be determined; the Phase 51 acceptance command prints the collected JSON before running focused tests.
+- Focused verification reports 3 passing tests; live collection succeeded on the supported Intel Mac environment. Full regression reached 181 backend tests with Ruff, mypy, dependency preflight, and whitespace validation passing.

@@ -9,6 +9,7 @@ from typing import Callable, Protocol
 from app.metrics.collector import MetricSnapshot
 from app.workloads.snapshots import EnvironmentFingerprint
 from benchmarks.commercebench import DatasetSnapshot
+from benchmarks.hardware import HardwareManifest, HardwareManifestCollector, SystemHardwareManifestCollector
 
 
 class BenchmarkArm(str, Enum):
@@ -36,6 +37,7 @@ class BenchmarkRunRecord:
     dataset_fingerprint: str
     initial_dataset_fingerprint: str
     environment_fingerprint: EnvironmentFingerprint
+    hardware_manifest: HardwareManifest
     metrics: MetricSnapshot
 
 
@@ -67,9 +69,15 @@ class InMemoryBenchmarkResultStore:
 class BenchmarkRunner:
     """Run baseline/candidate pairs from equivalent restored dataset snapshots."""
 
-    def __init__(self, restorer: SnapshotRestorer, result_store: BenchmarkResultStore) -> None:
+    def __init__(
+        self,
+        restorer: SnapshotRestorer,
+        result_store: BenchmarkResultStore,
+        hardware_manifest_collector: HardwareManifestCollector | None = None,
+    ) -> None:
         self._restorer = restorer
         self._result_store = result_store
+        self._hardware_manifest_collector = hardware_manifest_collector or SystemHardwareManifestCollector()
 
     def compare(
         self,
@@ -81,13 +89,26 @@ class BenchmarkRunner:
         arm_order: BenchmarkArmOrder = BenchmarkArmOrder.AB,
     ) -> tuple[BenchmarkRunRecord, BenchmarkRunRecord]:
         """Restore → baseline → restore → candidate and persist both measurement arms."""
-        arms = ((BenchmarkArm.BASELINE, baseline), (BenchmarkArm.CANDIDATE, candidate))
+        arms: tuple[tuple[BenchmarkArm, Callable[[], MetricSnapshot]], ...] = (
+            (BenchmarkArm.BASELINE, baseline),
+            (BenchmarkArm.CANDIDATE, candidate),
+        )
         if arm_order == BenchmarkArmOrder.BA:
             arms = tuple(reversed(arms))
+        hardware_manifest = self._hardware_manifest_collector.collect()
         records: dict[BenchmarkArm, BenchmarkRunRecord] = {}
         for arm, measurement in arms:
             initial_fingerprint = self._restore(dataset_snapshot)
-            record = self._record(pair_id, arm, arm_order, dataset_snapshot, initial_fingerprint, environment_fingerprint, measurement())
+            record = self._record(
+                pair_id,
+                arm,
+                arm_order,
+                dataset_snapshot,
+                initial_fingerprint,
+                environment_fingerprint,
+                hardware_manifest,
+                measurement(),
+            )
             self._result_store.persist(record)
             records[arm] = record
         baseline_record = records[BenchmarkArm.BASELINE]
@@ -110,6 +131,7 @@ class BenchmarkRunner:
         snapshot: DatasetSnapshot,
         initial_dataset_fingerprint: str,
         environment_fingerprint: EnvironmentFingerprint,
+        hardware_manifest: HardwareManifest,
         metrics: MetricSnapshot,
     ) -> BenchmarkRunRecord:
         return BenchmarkRunRecord(
@@ -120,5 +142,6 @@ class BenchmarkRunner:
             dataset_fingerprint=snapshot.fingerprint,
             initial_dataset_fingerprint=initial_dataset_fingerprint,
             environment_fingerprint=environment_fingerprint,
+            hardware_manifest=hardware_manifest,
             metrics=metrics,
         )

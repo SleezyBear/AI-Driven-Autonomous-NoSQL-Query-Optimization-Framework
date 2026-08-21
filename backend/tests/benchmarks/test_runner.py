@@ -3,6 +3,7 @@
 from app.metrics.collector import MetricSnapshot
 from app.workloads.snapshots import EnvironmentFingerprint
 from benchmarks.commercebench import CommerceBench, WorkloadProfile
+from benchmarks.hardware import HardwareManifest
 from benchmarks.runner import BenchmarkArm, BenchmarkRunner, InMemoryBenchmarkResultStore
 
 
@@ -19,10 +20,34 @@ class RecordingRestorer:
         return getattr(snapshot, "fingerprint")
 
 
+class FixedHardwareManifestCollector:
+    def collect(self) -> HardwareManifest:
+        return HardwareManifest(
+            macos_version="15.7.7",
+            cpu_model="Intel Core i7-8850H",
+            architecture="x86_64",
+            physical_cores=6,
+            logical_cpus=12,
+            ram_bytes=16 * 1024**3,
+            docker_version="28.0.0",
+            docker_allocated_cpus=6,
+            docker_allocated_ram_bytes=8 * 1024**3,
+            mongodb_version="8.0.0",
+            postgresql_version="17.0",
+            python_version="3.10.20",
+            numpy_version="1.26.4",
+            scipy_version="1.12.0",
+            pymongo_version="4.13.2",
+            ollama_version="0.32.9",
+            chat_model="gemma4:e4b",
+            embedding_model="embeddinggemma",
+        )
+
+
 def test_write_pair_restores_equivalent_state_and_persists_required_evidence() -> None:
     restorer = RecordingRestorer()
     store = InMemoryBenchmarkResultStore()
-    runner = BenchmarkRunner(restorer, store)
+    runner = BenchmarkRunner(restorer, store, FixedHardwareManifestCollector())
     snapshot = CommerceBench().reset(WorkloadProfile.SMOKE)
 
     baseline, candidate = runner.compare(
@@ -40,6 +65,8 @@ def test_write_pair_restores_equivalent_state_and_persists_required_evidence() -
     assert all(record.seed == 42 for record in store.records)
     assert all(record.dataset_fingerprint == snapshot.fingerprint for record in store.records)
     assert all(record.metrics == _metrics() for record in store.records)
+    assert baseline.hardware_manifest == candidate.hardware_manifest
+    assert baseline.hardware_manifest.cpu_model == "Intel Core i7-8850H"
 
 
 def _measure(restorer: RecordingRestorer, arm: str) -> MetricSnapshot:
