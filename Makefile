@@ -1,7 +1,7 @@
 PYTHON := ./nosql/bin/python
 PIP := ./nosql/bin/python -m pip
 
-.PHONY: preflight wheel-test phase0-acceptance phase15-acceptance pip-check test dev replica-test-env paper-env acceptance nosqlbench-smoke safetybench phase43-acceptance phase44-acceptance phase45-acceptance phase46-acceptance phase47-acceptance phase48-acceptance phase49-acceptance phase50-acceptance phase51-acceptance phase52-acceptance
+.PHONY: preflight wheel-test phase0-acceptance phase15-acceptance pip-check test dev replica-test-env paper-env acceptance nosqlbench-smoke safetybench phase43-acceptance phase44-acceptance phase45-acceptance phase46-acceptance phase47-acceptance phase48-acceptance phase49-acceptance phase50-acceptance phase51-acceptance phase52-acceptance phase53-acceptance demo-reset demo-start demo-seed demo-workload
 
 preflight:
 	$(PIP) check
@@ -78,3 +78,18 @@ phase51-acceptance:
 
 phase52-acceptance:
 	$(PYTHON) -m pytest backend/tests/exports
+
+demo-reset:
+	$(PYTHON) scripts/demo_mode.py reset
+
+demo-start:
+	$(PYTHON) scripts/demo_mode.py start
+
+demo-seed:
+	$(PYTHON) scripts/demo_mode.py seed
+
+demo-workload:
+	$(PYTHON) scripts/demo_mode.py workload
+
+phase53-acceptance:
+	$(PYTHON) -m pytest backend/tests/demo

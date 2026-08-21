@@ -55,7 +55,8 @@
 | 50 | Intel-Mac resource protection | COMPLETE — PASS | `make phase50-acceptance` |
 | 51 | Hardware manifest | COMPLETE — PASS | `make phase51-acceptance` |
 | 52 | Result export | COMPLETE — PASS | `make phase52-acceptance` |
-| 53–56 | Not started | Not started | Defined in master implementation plan |
+| 53 | Demo mode | COMPLETE — PASS | `make phase53-acceptance` |
+| 54–56 | Not started | Not started | Defined in master implementation plan |
 
 Phase progression is strictly one phase at a time: implement, run its test and prior tests, fix regressions, then update this document.
 
@@ -410,3 +411,11 @@ Phase progression is strictly one phase at a time: implement, run its test and p
 - `ResultExporter` creates one immutable `artifacts/<experiment-id>/` directory containing the eleven required manifest, environment, workload, policy, raw-trial, metric, admission, candidate, AI, ledger, and README artifacts.
 - Structured CSV and JSON/JSONL records retain paired-trial hardware manifests and evidence without overwriting an existing experiment; unsafe experiment IDs fail closed.
 - Focused export verification reports 2 passing tests; full regression reached 183 backend tests with Ruff, mypy, dependency preflight, and whitespace validation passing.
+
+## Phase 53 record
+
+- Result: PASS
+- The `demo-reset`, `demo-start`, `demo-seed`, and `demo-workload` commands provide an ordered, deterministic, safe in-memory lifecycle demonstration.
+- The workload command visibly traces slow workload → diagnose → candidate → sandbox → statistical admission → approval → deploy → measure → ledger → rollback. It uses the real sandbox evaluator, statistical admission, approval flow, production executor, append-only ledger, and ownership-verified rollback with a `FakeDatabaseAdapter` only.
+- Demo state is stored in ignored `.demo/state.json`; command order fails closed and no production database is contacted.
+- Focused demo verification reports 2 passing tests; full regression reached 185 backend tests with Ruff, mypy, dependency preflight, and whitespace validation passing.
