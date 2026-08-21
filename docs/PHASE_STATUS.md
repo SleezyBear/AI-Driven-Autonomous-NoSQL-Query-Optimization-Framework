@@ -51,7 +51,8 @@
 | 46 | Second AI provider contract | COMPLETE — PASS | `make phase46-acceptance` |
 | 47 | Database portability | COMPLETE — PASS | `make phase47-acceptance` |
 | 48 | Security suite | COMPLETE — PASS | `make phase48-acceptance` |
-| 49–56 | Not started | Not started | Defined in master implementation plan |
+| 49 | Crash recovery | COMPLETE — PASS | `make phase49-acceptance` |
+| 50–56 | Not started | Not started | Defined in master implementation plan |
 
 Phase progression is strictly one phase at a time: implement, run its test and prior tests, fix regressions, then update this document.
 
@@ -376,3 +377,10 @@ Phase progression is strictly one phase at a time: implement, run its test and p
 - Approvals are now bound to target ID, evidence hash, and a 15-minute lifetime. Cross-target reuse, stale evidence, expired approvals, and self-approval all fail closed before mutation.
 - The suite also verifies ledger tampering detection and credential/literal redaction from log and persisted-evidence boundaries.
 - Focused security verification reports 16 passing tests; full regression reached 160 backend tests with Ruff, mypy, dependency preflight, and whitespace validation passing.
+
+## Phase 49 record
+
+- Result: PASS
+- Controlled crash injection covers every required boundary: candidate application, sandbox application, benchmark, admission, approval, production mutation, ledger completion, monitoring, and rollback.
+- Production recovery observes target state before retrying an action. Crashes before mutation apply it once on recovery; crashes after mutation or before ledger completion do not replay it. Completed action IDs are idempotent.
+- Focused recovery verification reports 13 passing tests; full regression reached 173 backend tests with Ruff, mypy, dependency preflight, and whitespace validation passing.
