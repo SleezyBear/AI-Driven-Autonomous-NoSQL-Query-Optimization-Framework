@@ -52,7 +52,8 @@
 | 47 | Database portability | COMPLETE — PASS | `make phase47-acceptance` |
 | 48 | Security suite | COMPLETE — PASS | `make phase48-acceptance` |
 | 49 | Crash recovery | COMPLETE — PASS | `make phase49-acceptance` |
-| 50–56 | Not started | Not started | Defined in master implementation plan |
+| 50 | Intel-Mac resource protection | COMPLETE — PASS | `make phase50-acceptance` |
+| 51–56 | Not started | Not started | Defined in master implementation plan |
 
 Phase progression is strictly one phase at a time: implement, run its test and prior tests, fix regressions, then update this document.
 
@@ -384,3 +385,11 @@ Phase progression is strictly one phase at a time: implement, run its test and p
 - Controlled crash injection covers every required boundary: candidate application, sandbox application, benchmark, admission, approval, production mutation, ledger completion, monitoring, and rollback.
 - Production recovery observes target state before retrying an action. Crashes before mutation apply it once on recovery; crashes after mutation or before ledger completion do not replay it. Completed action IDs are idempotent.
 - Focused recovery verification reports 13 passing tests; full regression reached 173 backend tests with Ruff, mypy, dependency preflight, and whitespace validation passing.
+
+## Phase 50 record
+
+- Result: PASS
+- Intel development defaults limit AI requests, controlled benchmarks, evaluations, and production mutations per target to one concurrent task each.
+- `HeavyTaskLimiter` is used by `DurableJobWorker.run_heavy_task`; independent target mutation lanes are limited separately, while the same target cannot execute concurrent mutations.
+- Existing Phase 22 shared isolation continues to serialize Ollama and controlled benchmark windows; Phase 50's limiter prevents additional heavy-worker fan-out.
+- Focused resource verification reports 6 passing tests; full regression reached 179 backend tests with Ruff, mypy, dependency preflight, and whitespace validation passing.

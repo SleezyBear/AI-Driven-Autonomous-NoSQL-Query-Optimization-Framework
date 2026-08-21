@@ -6,11 +6,16 @@ import json
 from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from typing import Any
+from typing import Any, TypeVar
 from uuid import uuid4
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
+
+from app.resources.protection import HeavyTaskKind, HeavyTaskLimiter, shared_heavy_task_limiter
+
+
+T = TypeVar("T")
 
 
 @dataclass(frozen=True)
@@ -102,9 +107,14 @@ JobHandler = Callable[[Job], Awaitable[None]]
 class DurableJobWorker:
     """Execute each successfully completed claim once while holding its database lease."""
 
-    def __init__(self, repository: JobRepository, worker_id: str) -> None:
+    def __init__(self, repository: JobRepository, worker_id: str, heavy_task_limiter: HeavyTaskLimiter = shared_heavy_task_limiter) -> None:
         self._repository = repository
         self._worker_id = worker_id
+        self._heavy_task_limiter = heavy_task_limiter
+
+    async def run_heavy_task(self, kind: HeavyTaskKind, operation: Callable[[], Awaitable[T]], target_id: str | None = None) -> T:
+        """Run expensive worker work under the Intel-safe concurrency limits."""
+        return await self._heavy_task_limiter.run(kind, operation, target_id)
 
     async def run_once(self, handler: JobHandler) -> bool:
         """Claim, execute, and complete one job; return false when no job is claimable."""
