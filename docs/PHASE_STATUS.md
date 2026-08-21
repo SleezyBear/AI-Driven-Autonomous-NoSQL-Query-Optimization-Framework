@@ -1,64 +1,74 @@
 # Phase Status
 
+> **R0 historical-evidence correction.** This document preserves the results of
+> the original implementation plan, but a historical pass is not a claim of
+> production readiness. `UNIT_PASS` proves only the recorded isolated test;
+> `INTEGRATION_PASS` proves the recorded component boundary. A `SYSTEM_PASS`
+> requires a registered no-mocks system acceptance test. No original phase has
+> a `SYSTEM_PASS` at this point. See
+> [`PLAN_COMPLIANCE_MATRIX.md`](PLAN_COMPLIANCE_MATRIX.md) for the independent
+> implementation classification and [`PRODUCTION_READINESS.md`](PRODUCTION_READINESS.md)
+> for remediation status.
+
 | Phase | Scope | Status | Observable test |
 | --- | --- | --- | --- |
-| 0 | Machine and dependency compatibility | COMPLETE — PASS | `make phase0-acceptance` |
-| 1 | Backend skeleton | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests`; `./nosql/bin/ruff check backend`; `./nosql/bin/mypy backend/app`; `curl http://localhost:8000/health/live` |
-| 2 | Container infrastructure | COMPLETE — PASS | `docker compose --profile light up -d`; `docker compose --profile light ps` |
-| 3 | Control database | COMPLETE — PASS | `alembic upgrade`; `alembic downgrade`; `alembic upgrade` |
-| 4 | Secret storage | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/security` |
-| 5 | Auth and RBAC | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/auth` |
-| 6 | Database adapter interface | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/adapters` |
-| 7 | MongoDB capabilities | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/mongodb` |
-| 8 | MongoDB permission boundary | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/mongodb` |
-| 9 | Telemetry abstraction | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/telemetry` |
-| 10 | Query shape registry | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/query_shapes` |
-| 11 | Metrics collection | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/metrics` |
-| 12 | Workload snapshots | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/workloads` |
-| 13 | CommerceBench | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/commercebench` |
-| 14 | Benchmark runner | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/benchmarks` |
-| 15 | Statistical engine | COMPLETE — PASS | `make phase15-acceptance` |
-| 16 | Safety policy | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/unit/admission/test_policy.py` |
-| 17 | Append-only ledger | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/ledger` |
-| 18 | Typed action schemas | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/actions` |
-| 19 | Deterministic index generator | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/candidates` |
-| 20 | Sandbox index evaluation | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/evaluation` |
-| 21 | Ollama provider | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/ai` |
-| 22 | Benchmark/Ollama isolation | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/isolation` |
-| 23 | Experience memory | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/experience` |
-| 24 | Complete diagnosis pipeline | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/pipeline` |
-| 25 | Optimization state machine | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/state_machine` |
-| 26 | Durable worker | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/worker` |
-| 27 | Frontend foundation | COMPLETE — PASS | `docker compose --profile light build frontend` and Node 22 Vitest |
-| 28 | Target dashboard | COMPLETE — PASS | Node 22 Vitest and `http://localhost:5173` |
-| 29 | Workload dashboard | COMPLETE — PASS | Node 22 Vitest and `http://localhost:5173` |
-| 30 | Run dashboard | COMPLETE — PASS | Node 22 Vitest and `http://localhost:5173/runs` |
-| 31 | Approval flow | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/approvals` |
-| 32 | Production executor | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/production` |
-| 33 | Owned index rollback | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/rollback` |
-| 34 | Post-deployment monitoring | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/monitoring` |
-| 35 | Query-settings index hints | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/production/test_query_settings.py` |
-| 36 | Workload shift detection | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/monitoring` |
-| 37 | Query rewrite recommendations | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/recommendations` |
-| 38 | Index cleanup advisor | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/recommendations` |
-| 39 | Configuration advisor | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/recommendations` |
-| 40 | Privacy modes | COMPLETE — PASS | `./nosql/bin/python -m pytest backend/tests/security backend/tests/ai` |
-| 41 | NoSQLBench | COMPLETE — PASS | `make nosqlbench-smoke` |
-| 42 | SafetyBench | COMPLETE — PASS | `make safetybench` |
-| 43 | Baselines and ablations | COMPLETE — PASS | `make phase43-acceptance` |
-| 44 | API completion | COMPLETE — PASS | `make phase44-acceptance` |
-| 45 | Expert Mode | COMPLETE — PASS | `make phase45-acceptance` |
-| 46 | Second AI provider contract | COMPLETE — PASS | `make phase46-acceptance` |
-| 47 | Database portability | COMPLETE — PASS | `make phase47-acceptance` |
-| 48 | Security suite | COMPLETE — PASS | `make phase48-acceptance` |
-| 49 | Crash recovery | COMPLETE — PASS | `make phase49-acceptance` |
-| 50 | Intel-Mac resource protection | COMPLETE — PASS | `make phase50-acceptance` |
-| 51 | Hardware manifest | COMPLETE — PASS | `make phase51-acceptance` |
-| 52 | Result export | COMPLETE — PASS | `make phase52-acceptance` |
-| 53 | Demo mode | COMPLETE — PASS | `make phase53-acceptance` |
-| 54 | Full autonomous mode | COMPLETE — PASS | `make phase54-acceptance` |
-| 55 | Complete reversion test | COMPLETE — PASS | `make phase55-acceptance` |
-| 56 | Full acceptance | COMPLETE — PASS | `make acceptance` |
+| 0 | Machine and dependency compatibility | HISTORICAL — INTEGRATION_PASS | `make phase0-acceptance` |
+| 1 | Backend skeleton | HISTORICAL — UNIT_PASS | `./nosql/bin/python -m pytest backend/tests`; `./nosql/bin/ruff check backend`; `./nosql/bin/mypy backend/app`; `curl http://localhost:8000/health/live` |
+| 2 | Container infrastructure | HISTORICAL — INTEGRATION_PASS | `docker compose --profile light up -d`; `docker compose --profile light ps` |
+| 3 | Control database | HISTORICAL — INTEGRATION_PASS | `alembic upgrade`; `alembic downgrade`; `alembic upgrade` |
+| 4 | Secret storage | HISTORICAL — UNIT_PASS | `./nosql/bin/python -m pytest backend/tests/security` |
+| 5 | Auth and RBAC | HISTORICAL — UNIT_PASS | `./nosql/bin/python -m pytest backend/tests/auth` |
+| 6 | Database adapter interface | HISTORICAL — UNIT_PASS | `./nosql/bin/python -m pytest backend/tests/adapters` |
+| 7 | MongoDB capabilities | HISTORICAL — INTEGRATION_PASS | `./nosql/bin/python -m pytest backend/tests/mongodb` |
+| 8 | MongoDB permission boundary | HISTORICAL — INTEGRATION_PASS | `./nosql/bin/python -m pytest backend/tests/mongodb` |
+| 9 | Telemetry abstraction | HISTORICAL — UNIT_PASS | `./nosql/bin/python -m pytest backend/tests/telemetry` |
+| 10 | Query shape registry | HISTORICAL — UNIT_PASS | `./nosql/bin/python -m pytest backend/tests/query_shapes` |
+| 11 | Metrics collection | HISTORICAL — UNIT_PASS | `./nosql/bin/python -m pytest backend/tests/metrics` |
+| 12 | Workload snapshots | HISTORICAL — UNIT_PASS | `./nosql/bin/python -m pytest backend/tests/workloads` |
+| 13 | CommerceBench | HISTORICAL — UNIT_PASS | `./nosql/bin/python -m pytest backend/tests/commercebench` |
+| 14 | Benchmark runner | HISTORICAL — UNIT_PASS | `./nosql/bin/python -m pytest backend/tests/benchmarks` |
+| 15 | Statistical engine | HISTORICAL — UNIT_PASS | `make phase15-acceptance` |
+| 16 | Safety policy | HISTORICAL — UNIT_PASS | `./nosql/bin/python -m pytest backend/tests/unit/admission/test_policy.py` |
+| 17 | Append-only ledger | HISTORICAL — UNIT_PASS | `./nosql/bin/python -m pytest backend/tests/ledger` |
+| 18 | Typed action schemas | HISTORICAL — UNIT_PASS | `./nosql/bin/python -m pytest backend/tests/actions` |
+| 19 | Deterministic index generator | HISTORICAL — UNIT_PASS | `./nosql/bin/python -m pytest backend/tests/candidates` |
+| 20 | Sandbox index evaluation | HISTORICAL — UNIT_PASS | `./nosql/bin/python -m pytest backend/tests/evaluation` |
+| 21 | Ollama provider | HISTORICAL — UNIT_PASS | `./nosql/bin/python -m pytest backend/tests/ai` |
+| 22 | Benchmark/Ollama isolation | HISTORICAL — UNIT_PASS | `./nosql/bin/python -m pytest backend/tests/isolation` |
+| 23 | Experience memory | HISTORICAL — UNIT_PASS | `./nosql/bin/python -m pytest backend/tests/experience` |
+| 24 | Complete diagnosis pipeline | HISTORICAL — UNIT_PASS | `./nosql/bin/python -m pytest backend/tests/pipeline` |
+| 25 | Optimization state machine | HISTORICAL — UNIT_PASS | `./nosql/bin/python -m pytest backend/tests/state_machine` |
+| 26 | Durable worker | HISTORICAL — UNIT_PASS | `./nosql/bin/python -m pytest backend/tests/worker` |
+| 27 | Frontend foundation | HISTORICAL — INTEGRATION_PASS | `docker compose --profile light build frontend` and Node 22 Vitest |
+| 28 | Target dashboard | HISTORICAL — INTEGRATION_PASS | Node 22 Vitest and `http://localhost:5173` |
+| 29 | Workload dashboard | HISTORICAL — INTEGRATION_PASS | Node 22 Vitest and `http://localhost:5173` |
+| 30 | Run dashboard | HISTORICAL — INTEGRATION_PASS | Node 22 Vitest and `http://localhost:5173/runs` |
+| 31 | Approval flow | HISTORICAL — UNIT_PASS | `./nosql/bin/python -m pytest backend/tests/approvals` |
+| 32 | Production executor | HISTORICAL — UNIT_PASS | `./nosql/bin/python -m pytest backend/tests/production` |
+| 33 | Owned index rollback | HISTORICAL — UNIT_PASS | `./nosql/bin/python -m pytest backend/tests/rollback` |
+| 34 | Post-deployment monitoring | HISTORICAL — UNIT_PASS | `./nosql/bin/python -m pytest backend/tests/monitoring` |
+| 35 | Query-settings index hints | HISTORICAL — UNIT_PASS | `./nosql/bin/python -m pytest backend/tests/production/test_query_settings.py` |
+| 36 | Workload shift detection | HISTORICAL — UNIT_PASS | `./nosql/bin/python -m pytest backend/tests/monitoring` |
+| 37 | Query rewrite recommendations | HISTORICAL — UNIT_PASS | `./nosql/bin/python -m pytest backend/tests/recommendations` |
+| 38 | Index cleanup advisor | HISTORICAL — UNIT_PASS | `./nosql/bin/python -m pytest backend/tests/recommendations` |
+| 39 | Configuration advisor | HISTORICAL — UNIT_PASS | `./nosql/bin/python -m pytest backend/tests/recommendations` |
+| 40 | Privacy modes | HISTORICAL — UNIT_PASS | `./nosql/bin/python -m pytest backend/tests/security backend/tests/ai` |
+| 41 | NoSQLBench | HISTORICAL — INTEGRATION_PASS | `make nosqlbench-smoke` |
+| 42 | SafetyBench | HISTORICAL — UNIT_PASS | `make safetybench` |
+| 43 | Baselines and ablations | HISTORICAL — UNIT_PASS | `make phase43-acceptance` |
+| 44 | API completion | HISTORICAL — UNIT_PASS | `make phase44-acceptance` |
+| 45 | Expert Mode | HISTORICAL — UNIT_PASS | `make phase45-acceptance` |
+| 46 | Second AI provider contract | HISTORICAL — UNIT_PASS | `make phase46-acceptance` |
+| 47 | Database portability | HISTORICAL — UNIT_PASS | `make phase47-acceptance` |
+| 48 | Security suite | HISTORICAL — UNIT_PASS | `make phase48-acceptance` |
+| 49 | Crash recovery | HISTORICAL — UNIT_PASS | `make phase49-acceptance` |
+| 50 | Intel-Mac resource protection | HISTORICAL — UNIT_PASS | `make phase50-acceptance` |
+| 51 | Hardware manifest | HISTORICAL — INTEGRATION_PASS | `make phase51-acceptance` |
+| 52 | Result export | HISTORICAL — UNIT_PASS | `make phase52-acceptance` |
+| 53 | Demo mode | HISTORICAL — UNIT_PASS | `make phase53-acceptance` |
+| 54 | Full autonomous mode | HISTORICAL — UNIT_PASS | `make phase54-acceptance` |
+| 55 | Complete reversion test | HISTORICAL — UNIT_PASS | `make phase55-acceptance` |
+| 56 | Full acceptance | HISTORICAL — INTEGRATION_PASS | `make acceptance` |
 
 Phase progression is strictly one phase at a time: implement, run its test and prior tests, fix regressions, then update this document.
 
