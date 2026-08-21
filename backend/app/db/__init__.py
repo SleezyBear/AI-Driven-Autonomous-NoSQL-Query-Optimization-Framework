@@ -1,0 +1,5 @@
+"""Durable SQLAlchemy control-plane schema."""
+
+from app.db.models import Base
+
+__all__ = ["Base"]

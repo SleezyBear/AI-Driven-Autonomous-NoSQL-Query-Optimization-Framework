@@ -71,7 +71,7 @@ class JobRepository:
             row = (await connection.execute(statement, {"worker_id": worker_id, "now": now, "expires_at": expires_at})).mappings().one_or_none()
         if row is None:
             return None
-        return Job(id=row["id"], payload=row["payload"], attempts=row["attempts"])
+        return Job(id=str(row["id"]), payload=row["payload"], attempts=row["attempts"])
 
     async def heartbeat(self, job_id: str, worker_id: str) -> bool:
         """Extend a worker's current lease; a lost lease cannot be renewed."""

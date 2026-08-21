@@ -29,7 +29,7 @@ async def job_repository() -> AsyncIterator[JobRepository]:
     finally:
         if job_ids:
             async with engine.begin() as connection:
-                await connection.execute(text("DELETE FROM jobs WHERE id = ANY(CAST(:ids AS varchar[]))"), {"ids": job_ids})
+                await connection.execute(text("DELETE FROM jobs WHERE id = ANY(CAST(:ids AS uuid[]))"), {"ids": job_ids})
         await engine.dispose()
 
 
