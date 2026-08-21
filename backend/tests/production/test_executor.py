@@ -32,7 +32,7 @@ async def test_deploys_only_after_the_full_typed_admitted_sequence() -> None:
     executor = ProductionExecutor(adapter, approvals, ledger)
     action = _action()
     evidence_hash = "evidence-a"
-    approval = approvals.request("candidate-1", evidence_hash)
+    approval = approvals.request("candidate-1", evidence_hash, "target-1")
     approvals.approve(approval.approval_id, "operator@example.test")
     request = DeploymentRequest("target-1", "candidate-1", action, _admission(), evidence_hash, await executor.current_state_hash(action), "production-executor")
 
@@ -51,7 +51,7 @@ async def test_stale_approval_cannot_deploy_or_change_target() -> None:
     approvals = ApprovalFlow()
     executor = ProductionExecutor(adapter, approvals, AppendOnlyLedger())
     action = _action()
-    approval = approvals.request("candidate-1", "evidence-a")
+    approval = approvals.request("candidate-1", "evidence-a", "target-1")
     approvals.approve(approval.approval_id, "operator@example.test")
     request = DeploymentRequest("target-1", "candidate-1", action, _admission(), "evidence-b", await executor.current_state_hash(action), "production-executor")
 
@@ -67,7 +67,7 @@ async def test_unadmitted_action_is_rejected_without_execution() -> None:
     approvals = ApprovalFlow()
     executor = ProductionExecutor(adapter, approvals, AppendOnlyLedger())
     action = _action()
-    approval = approvals.request("candidate-1", "evidence-a")
+    approval = approvals.request("candidate-1", "evidence-a", "target-1")
     approvals.approve(approval.approval_id, "operator@example.test")
     request = DeploymentRequest("target-1", "candidate-1", action, _admission(AdmissionStatus.REJECTED_REGRESSION), "evidence-a", await executor.current_state_hash(action), "production-executor")
 
@@ -95,7 +95,7 @@ async def test_target_state_drift_is_rejected_before_execution() -> None:
     approvals = ApprovalFlow()
     executor = ProductionExecutor(adapter, approvals, AppendOnlyLedger())
     action = _action()
-    approval = approvals.request("candidate-1", "evidence-a")
+    approval = approvals.request("candidate-1", "evidence-a", "target-1")
     approvals.approve(approval.approval_id, "operator@example.test")
     expected_state_hash = await executor.current_state_hash(action)
     await adapter.create_index(Namespace(collection="orders"), IndexSpec("drift", (("status", 1),)))

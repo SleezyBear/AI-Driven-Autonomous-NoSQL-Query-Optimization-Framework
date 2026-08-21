@@ -26,7 +26,7 @@ async def _deployed() -> tuple[FakeDatabaseAdapter, AppendOnlyLedger, str]:
     approvals = ApprovalFlow()
     executor = ProductionExecutor(adapter, approvals, ledger)
     action = _action()
-    approval = approvals.request("candidate-1", "evidence-a")
+    approval = approvals.request("candidate-1", "evidence-a", "target-1")
     approvals.approve(approval.approval_id, "operator@example.test")
     result = await executor.deploy(DeploymentRequest("target-1", "candidate-1", action, _admission(), "evidence-a", await executor.current_state_hash(action), "production-executor"))
     return adapter, ledger, result.applied_entry.entry_id

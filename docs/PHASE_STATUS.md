@@ -50,7 +50,8 @@
 | 45 | Expert Mode | COMPLETE — PASS | `make phase45-acceptance` |
 | 46 | Second AI provider contract | COMPLETE — PASS | `make phase46-acceptance` |
 | 47 | Database portability | COMPLETE — PASS | `make phase47-acceptance` |
-| 48–56 | Not started | Not started | Defined in master implementation plan |
+| 48 | Security suite | COMPLETE — PASS | `make phase48-acceptance` |
+| 49–56 | Not started | Not started | Defined in master implementation plan |
 
 Phase progression is strictly one phase at a time: implement, run its test and prior tests, fix regressions, then update this document.
 
@@ -367,3 +368,11 @@ Phase progression is strictly one phase at a time: implement, run its test and p
 - `scripts/check_database_portability.py` statically enforces that `pymongo` imports occur only inside MongoDB-specific application modules.
 - `FakePortableAdapter` completes the core sandbox orchestration smoke flow through the typed `DatabaseAdapter` contract, including typed index cleanup, without any MongoDB driver dependency.
 - Focused portability verification reports 2 passing tests; full regression reached 154 backend tests with Ruff, mypy, dependency preflight, and whitespace validation passing.
+
+## Phase 48 record
+
+- Result: PASS
+- The zero-failure security suite verifies the API does not receive an executor secret; AI providers expose neither database credentials nor tool execution; MongoDB executor document writes fail; and forbidden typed actions fail validation.
+- Approvals are now bound to target ID, evidence hash, and a 15-minute lifetime. Cross-target reuse, stale evidence, expired approvals, and self-approval all fail closed before mutation.
+- The suite also verifies ledger tampering detection and credential/literal redaction from log and persisted-evidence boundaries.
+- Focused security verification reports 16 passing tests; full regression reached 160 backend tests with Ruff, mypy, dependency preflight, and whitespace validation passing.

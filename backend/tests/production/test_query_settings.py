@@ -37,7 +37,7 @@ def _action(previous: tuple[str, ...] | None = None) -> SetQuerySettingsIndexHin
 async def test_deploys_allowed_indexes_only_and_rolls_back_to_absent_prior_state() -> None:
     adapter, approvals, ledger, executor = await _executor()
     action = _action()
-    approval = approvals.request("action-a", "evidence-a")
+    approval = approvals.request("action-a", "evidence-a", "target-a")
     approvals.approve(approval.approval_id, "approver@example.test")
     result = await executor.deploy(
         QuerySettingsDeploymentRequest("target-a", "action-a", action, "evidence-a", await executor.current_state_hash(action), "executor")
@@ -61,7 +61,7 @@ async def test_existing_query_setting_requires_human_approval_and_restores_exact
     with pytest.raises(PermissionError, match="current approval required"):
         await executor.deploy(request)
 
-    approval = approvals.request("action-a", "evidence-a")
+    approval = approvals.request("action-a", "evidence-a", "target-a")
     approvals.approve(approval.approval_id, "approver@example.test")
     result = await executor.deploy(request)
     await executor.rollback(QuerySettingsRollbackRequest("target-a", result.applied_entry.entry_id, "rollback"))
@@ -73,7 +73,7 @@ async def test_existing_query_setting_requires_human_approval_and_restores_exact
 async def test_rollback_blocks_on_query_settings_drift() -> None:
     adapter, approvals, _, executor = await _executor()
     action = _action()
-    approval = approvals.request("action-a", "evidence-a")
+    approval = approvals.request("action-a", "evidence-a", "target-a")
     approvals.approve(approval.approval_id, "approver@example.test")
     result = await executor.deploy(
         QuerySettingsDeploymentRequest("target-a", "action-a", action, "evidence-a", await executor.current_state_hash(action), "executor")

@@ -65,7 +65,7 @@ class ProductionExecutor:
         lock = self._target_locks.setdefault(request.target_id, asyncio.Lock())
         async with lock:
             if request.semi_autonomous:
-                self._approvals.require_current_approval(request.action_id, request.evidence_hash)
+                self._approvals.require_current_approval(request.action_id, request.evidence_hash, request.target_id)
 
             before_state = await self._current_state(request.action)
             if _state_hash(before_state) != request.expected_state_hash:

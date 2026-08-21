@@ -68,7 +68,7 @@ class QuerySettingsExecutor:
             if _allowed_indexes(before) != request.action.previous_allowed_indexes:
                 raise ProductionExecutionError("prior query-settings state differs from typed inverse evidence")
             if before is not None or request.semi_autonomous:
-                self._approvals.require_current_approval(request.action_id, request.evidence_hash)
+                self._approvals.require_current_approval(request.action_id, request.evidence_hash, request.target_id)
             await self._verify_indexes_exist(request.action)
 
             after = QuerySettingsIndexHint(request.action.allowed_indexes)
