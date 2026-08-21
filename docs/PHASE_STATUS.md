@@ -57,7 +57,8 @@
 | 52 | Result export | COMPLETE — PASS | `make phase52-acceptance` |
 | 53 | Demo mode | COMPLETE — PASS | `make phase53-acceptance` |
 | 54 | Full autonomous mode | COMPLETE — PASS | `make phase54-acceptance` |
-| 55–56 | Not started | Not started | Defined in master implementation plan |
+| 55 | Complete reversion test | COMPLETE — PASS | `make phase55-acceptance` |
+| 56 | Not started | Not started | Defined in master implementation plan |
 
 Phase progression is strictly one phase at a time: implement, run its test and prior tests, fix regressions, then update this document.
 
@@ -428,3 +429,11 @@ Phase progression is strictly one phase at a time: implement, run its test and p
 - Admission eligibility, typed-action validation, evidence and target-state checks, target locks, append-only ledger records, and exact ownership-verified rollback remain mandatory in full-autonomous mode.
 - The permanent approval gate for overwriting an existing query-settings hint remains enforced even in full-autonomous mode.
 - Focused autonomy and production verification reports 12 passing tests; full regression reached 189 backend tests with Ruff, mypy, dependency preflight, and whitespace validation passing.
+
+## Phase 55 record
+
+- Result: PASS
+- A canonical optimizer-managed fingerprint covers the exact managed index state and allowed-indexes query-setting state for one namespace and query shape.
+- The complete reversion sequence proves `S0 → optimizer index → S1 → optimizer query settings → S2`, followed by `S2 → S1 → S0`, restores the original fingerprint exactly.
+- Injected human index drift causes ownership-verified automatic rollback to refuse mutation with `RELEVANT_DRIFT_DETECTED`.
+- Focused reversion verification reports 2 passing tests; full regression reached 191 backend tests with Ruff, mypy, dependency preflight, and whitespace validation passing.
