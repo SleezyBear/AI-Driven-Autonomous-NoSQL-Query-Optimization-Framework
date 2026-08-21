@@ -49,7 +49,8 @@
 | 44 | API completion | COMPLETE — PASS | `make phase44-acceptance` |
 | 45 | Expert Mode | COMPLETE — PASS | `make phase45-acceptance` |
 | 46 | Second AI provider contract | COMPLETE — PASS | `make phase46-acceptance` |
-| 47–56 | Not started | Not started | Defined in master implementation plan |
+| 47 | Database portability | COMPLETE — PASS | `make phase47-acceptance` |
+| 48–56 | Not started | Not started | Defined in master implementation plan |
 
 Phase progression is strictly one phase at a time: implement, run its test and prior tests, fix regressions, then update this document.
 
@@ -359,3 +360,10 @@ Phase progression is strictly one phase at a time: implement, run its test and p
 - `OpenAICompatibleAIProvider` implements the same typed advisory-only contract as Ollama through local OpenAI-compatible `/v1/chat/completions` and `/v1/embeddings` endpoints. It uses temperature zero, JSON-object output requests, privacy sanitization, structured validation, one retry for malformed structured output, and the shared benchmark/AI isolation lock.
 - An in-process local fake server verifies both endpoint contracts; no external service is used. `DEFAULT_AI_PROVIDER` remains `ollama`.
 - Focused provider verification reports 5 passing tests; full regression reached 152 backend tests with Ruff, mypy, dependency preflight, and whitespace validation passing.
+
+## Phase 47 record
+
+- Result: PASS
+- `scripts/check_database_portability.py` statically enforces that `pymongo` imports occur only inside MongoDB-specific application modules.
+- `FakePortableAdapter` completes the core sandbox orchestration smoke flow through the typed `DatabaseAdapter` contract, including typed index cleanup, without any MongoDB driver dependency.
+- Focused portability verification reports 2 passing tests; full regression reached 154 backend tests with Ruff, mypy, dependency preflight, and whitespace validation passing.

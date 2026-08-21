@@ -1,7 +1,7 @@
 PYTHON := ./nosql/bin/python
 PIP := ./nosql/bin/python -m pip
 
-.PHONY: preflight wheel-test phase0-acceptance phase15-acceptance pip-check test dev replica-test-env paper-env acceptance nosqlbench-smoke safetybench phase43-acceptance phase44-acceptance phase45-acceptance phase46-acceptance
+.PHONY: preflight wheel-test phase0-acceptance phase15-acceptance pip-check test dev replica-test-env paper-env acceptance nosqlbench-smoke safetybench phase43-acceptance phase44-acceptance phase45-acceptance phase46-acceptance phase47-acceptance
 
 preflight:
 	$(PIP) check
@@ -58,3 +58,7 @@ phase45-acceptance:
 
 phase46-acceptance:
 	$(PYTHON) -m pytest backend/tests/ai
+
+phase47-acceptance:
+	$(PYTHON) scripts/check_database_portability.py
+	$(PYTHON) -m pytest backend/tests/portability
