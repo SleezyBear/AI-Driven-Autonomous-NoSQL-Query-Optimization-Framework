@@ -54,7 +54,8 @@
 | 49 | Crash recovery | COMPLETE — PASS | `make phase49-acceptance` |
 | 50 | Intel-Mac resource protection | COMPLETE — PASS | `make phase50-acceptance` |
 | 51 | Hardware manifest | COMPLETE — PASS | `make phase51-acceptance` |
-| 52–56 | Not started | Not started | Defined in master implementation plan |
+| 52 | Result export | COMPLETE — PASS | `make phase52-acceptance` |
+| 53–56 | Not started | Not started | Defined in master implementation plan |
 
 Phase progression is strictly one phase at a time: implement, run its test and prior tests, fix regressions, then update this document.
 
@@ -402,3 +403,10 @@ Phase progression is strictly one phase at a time: implement, run its test and p
 - The manifest records macOS, CPU, architecture, physical and logical CPU counts, RAM, Docker version and allocations, live MongoDB and PostgreSQL versions, Python, NumPy, SciPy, PyMongo, Ollama, and configured chat and embedding models.
 - Live collection fails closed when a mandatory fact cannot be determined; the Phase 51 acceptance command prints the collected JSON before running focused tests.
 - Focused verification reports 3 passing tests; live collection succeeded on the supported Intel Mac environment. Full regression reached 181 backend tests with Ruff, mypy, dependency preflight, and whitespace validation passing.
+
+## Phase 52 record
+
+- Result: PASS
+- `ResultExporter` creates one immutable `artifacts/<experiment-id>/` directory containing the eleven required manifest, environment, workload, policy, raw-trial, metric, admission, candidate, AI, ledger, and README artifacts.
+- Structured CSV and JSON/JSONL records retain paired-trial hardware manifests and evidence without overwriting an existing experiment; unsafe experiment IDs fail closed.
+- Focused export verification reports 2 passing tests; full regression reached 183 backend tests with Ruff, mypy, dependency preflight, and whitespace validation passing.
