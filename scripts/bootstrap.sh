@@ -2,7 +2,10 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-PYTHON310="$(command -v python3.10 || true)"
+UV_BIN="${UV_BIN:-$REPO_ROOT/.tools/uv/uv}"
+if [[ ! -x "$UV_BIN" ]]; then
+  UV_BIN="$(command -v uv || true)"
+fi
 VENV_PYTHON="$REPO_ROOT/nosql/bin/python"
 
 if [[ "$(uname -s)" != "Darwin" ]]; then
@@ -13,17 +16,9 @@ if [[ "$(uname -m)" != "x86_64" ]]; then
   echo "FAIL: Phase 0 requires Intel x86_64."
   exit 1
 fi
-if [[ -z "$PYTHON310" ]]; then
-  echo "Python 3.10 interpreter not found."
-  echo "Phase 0 cannot continue until an x86_64 Python 3.10 interpreter is available."
-  exit 1
-fi
-if [[ "$($PYTHON310 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')" != "3.10" ]]; then
-  echo "FAIL: python3.10 must be CPython 3.10.x."
-  exit 1
-fi
-if [[ "$($PYTHON310 -c 'import platform; print(platform.machine())')" != "x86_64" ]]; then
-  echo "FAIL: python3.10 is not x86_64."
+if [[ ! -x "$UV_BIN" ]]; then
+  echo "Project-local uv is not available at $UV_BIN."
+  echo "R1 requires uv-managed CPython 3.12 without changing system Python."
   exit 1
 fi
 
@@ -36,12 +31,16 @@ fi
 echo "MongoDB CPU compatibility: PASS"
 
 cd "$REPO_ROOT"
-if [[ -x "$VENV_PYTHON" ]] && [[ "$($VENV_PYTHON -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')" != "3.10" ]]; then
+if [[ -x "$VENV_PYTHON" ]] && [[ "$($VENV_PYTHON -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')" != "3.12" ]]; then
   echo "Replacing project-owned nosql environment created with the wrong Python version."
   rm -rf "$REPO_ROOT/nosql"
 fi
 if [[ ! -x "$VENV_PYTHON" ]]; then
-  "$PYTHON310" -m venv "$REPO_ROOT/nosql"
+  "$UV_BIN" venv --python 3.12 --seed "$REPO_ROOT/nosql"
+fi
+if [[ "$($VENV_PYTHON -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')" != "3.12" ]]; then
+  echo "FAIL: nosql virtual environment must use CPython 3.12.x."
+  exit 1
 fi
 if [[ "$($VENV_PYTHON -c 'import platform; print(platform.machine())')" != "x86_64" ]]; then
   echo "FAIL: nosql virtual environment Python is not x86_64."

@@ -1,7 +1,7 @@
 PYTHON := ./nosql/bin/python
 PIP := ./nosql/bin/python -m pip
 
-.PHONY: preflight wheel-test phase0-acceptance phase-r0-acceptance phase15-acceptance pip-check test dev replica-test-env paper-env acceptance nosqlbench-smoke safetybench phase43-acceptance phase44-acceptance phase45-acceptance phase46-acceptance phase47-acceptance phase48-acceptance phase49-acceptance phase50-acceptance phase51-acceptance phase52-acceptance phase53-acceptance phase54-acceptance phase55-acceptance demo-reset demo-start demo-seed demo-workload
+.PHONY: preflight wheel-test phase0-acceptance phase-r0-acceptance phase-r1-acceptance phase15-acceptance pip-check test dev replica-test-env paper-env acceptance nosqlbench-smoke safetybench phase43-acceptance phase44-acceptance phase45-acceptance phase46-acceptance phase47-acceptance phase48-acceptance phase49-acceptance phase50-acceptance phase51-acceptance phase52-acceptance phase53-acceptance phase54-acceptance phase55-acceptance demo-reset demo-start demo-seed demo-workload
 
 preflight:
 	$(PIP) check
@@ -15,12 +15,22 @@ wheel-test:
 	$(PYTHON) -m pip download --quiet --only-binary=:all: --dest .dependency-wheel-test -r requirements.txt
 
 phase0-acceptance: wheel-test preflight
-	$(PYTHON) -c 'import sys; assert sys.version_info[:2] == (3, 10)'
+	$(PYTHON) -c 'import sys; assert sys.version_info[:2] == (3, 12)'
 	$(PYTHON) -c 'import platform; assert platform.machine() == "x86_64"'
 
 phase-r0-acceptance:
 	$(PYTHON) scripts/check_system_pass_registry.py
 	$(PYTHON) -m pytest backend/tests/tooling/test_system_pass_registry.py
+
+phase-r1-acceptance:
+	$(PIP) check
+	$(PYTHON) scripts/check_python_dependencies.py
+	$(PYTHON) scripts/verify_requirements.py
+	$(PYTHON) scripts/verify_environment.py
+	$(PYTHON) -m pytest backend/tests
+	$(PYTHON) -m ruff check backend
+	$(PYTHON) -m mypy backend/app
+	$(PYTHON) -c 'import platform, sys; assert sys.version_info[:2] == (3, 12); assert platform.machine() == "x86_64"'
 
 phase15-acceptance:
 	$(PYTHON) scripts/phase15_acceptance.py

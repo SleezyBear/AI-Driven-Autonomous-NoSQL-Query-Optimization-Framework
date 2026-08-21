@@ -39,8 +39,8 @@ REQUIRED_PINS = {
 
 
 def main() -> int:
-    failed = sys.version_info[:2] != (3, 10) or platform.machine() != "x86_64"
-    print(f"Python: {platform.python_version()} (required 3.10.x)")
+    failed = sys.version_info[:2] != (3, 12) or platform.machine() != "x86_64"
+    print(f"Python: {platform.python_version()} (required 3.12.x)")
     print(f"Architecture: {platform.machine()} (required x86_64)")
     for package, expected in REQUIRED_PINS.items():
         try:

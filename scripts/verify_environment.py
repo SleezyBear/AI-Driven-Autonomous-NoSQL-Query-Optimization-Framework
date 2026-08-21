@@ -60,8 +60,8 @@ def main() -> int:
     success &= report("MongoDB CPU requirements", mongo_ok, f"CPU={brand}; AVX={'yes' if 'AVX' in features.upper() else 'no'}")
 
     py_version = platform.python_version()
-    py_ok = sys.version_info[:2] == (3, 10) and platform.python_implementation() == "CPython"
-    success &= report("CPython 3.10", py_ok, py_version)
+    py_ok = sys.version_info[:2] == (3, 12) and platform.python_implementation() == "CPython"
+    success &= report("CPython 3.12", py_ok, py_version)
     success &= report("Python x86_64", platform.machine() == "x86_64", platform.machine())
     in_venv = sys.prefix != sys.base_prefix
     expected_venv = Path(sys.executable).resolve() == VENV_PYTHON.resolve() if VENV_PYTHON.exists() else False

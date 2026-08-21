@@ -3,7 +3,7 @@
 ## Required development environment
 
 - macOS on Intel x86_64
-- CPython 3.10.x, with an x86_64 interpreter
+- uv-managed CPython 3.12.x, with an x86_64 interpreter in `<repo-root>/nosql`
 - Project-local `nosql/` virtual environment
 - Binary wheels for every pinned direct dependency
 - Docker containers running linux/amd64
@@ -15,7 +15,7 @@ Ollama runs on the macOS host at `http://127.0.0.1:11434`; containers use `http:
 
 ## Verification
 
-Canonical local Python: CPython 3.10.x  
+Canonical local Python: uv-managed CPython 3.12.x
 Canonical architecture: x86_64  
 Canonical venv: `<repo-root>/nosql`  
 Canonical dependency source: `<repo-root>/requirements.txt`
@@ -27,8 +27,8 @@ Collected during the current Phase 0 run:
 - Host OS: macOS 15.7.7 (build 24G720)
 - Host architecture: x86_64
 - CPU: Intel(R) Core(TM) i7-8850H CPU @ 2.60GHz; AVX available; 6 physical cores / 12 logical CPUs; 16 GiB RAM
-- Python: CPython 3.10.20 at `/usr/local/opt/python@3.10/bin/python3.10`, x86_64
-- Virtual environment: `<repo-root>/nosql`; its interpreter is CPython 3.10.20 x86_64
+- System Python remains independent of this project and must not be changed by project setup.
+- Virtual environment: `<repo-root>/nosql`; its interpreter is uv-managed CPython 3.12.x x86_64.
 - pip: 26.2.1 in `nosql`
 - Docker CLI: 29.6.1; Docker Compose: v5.3.0; x86_64/linux-amd64 execution verified
 - Ollama: 0.32.9 and host API available

@@ -2,8 +2,8 @@
 
 This document records the fixed decisions in the master implementation plan; it introduces no alternatives.
 
-- The development target is Intel x86_64 macOS, CPython 3.10.x, and linux/amd64 containers. The Python 3.10 compatibility overrides supersede earlier runtime references.
-- Phase 0 verified macOS 15.7.7 on an Intel Core i7-8850H with 16 GiB RAM, CPython 3.10.20 in `nosql/`, Docker linux/amd64, and Ollama 0.32.9. Python must remain 3.10 and project packages must remain inside `nosql/`.
+- The development target is Intel x86_64 macOS, uv-managed CPython 3.12.x in the project-local `nosql/` venv, and linux/amd64 containers. This does not alter the system/default Python installation.
+- The historical Phase 0 environment used CPython 3.10.20. R1 supersedes that project runtime with isolated CPython 3.12.x while retaining all project packages inside `nosql/`.
 - `nosql/` is the sole normal-development Python virtual environment. Root `requirements.txt` is canonical and all direct dependencies are pinned.
 - PostgreSQL 17 with pgvector is the control database. MongoDB is the optimized data platform and is accessed through typed adapters only.
 - Ollama runs on the host and is CPU-only. Benchmarking and any AI inference are mutually exclusive through a global isolation lock.

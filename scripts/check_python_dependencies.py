@@ -33,8 +33,8 @@ PACKAGES = (
 
 
 def main() -> int:
-    if sys.version_info[:2] != (3, 10):
-        print("Dependency import failed: Python 3.10 is required.", file=sys.stderr)
+    if sys.version_info[:2] != (3, 12):
+        print("Dependency import failed: Python 3.12 is required.", file=sys.stderr)
         return 1
     if platform.machine() != "x86_64":
         print("Dependency import failed: x86_64 Python is required.", file=sys.stderr)

@@ -22,7 +22,8 @@ qualified. `scripts/check_system_pass_registry.py` enforces that every future
 | Remediation phase | Status | Evidence |
 | --- | --- | --- |
 | R0 — truthful state | COMPLETE — UNIT_PASS | Historical claims are reclassified independently of `PHASE_STATUS.md`; the system-pass registry guard is tested. |
-| R1–R28 | NOT STARTED | Blocked behind the preceding remediation phase. |
+| R1 — Python/runtime lifecycle migration | COMPLETE — INTEGRATION_PASS | uv-managed CPython 3.12.14 x86_64, unchanged pinned requirements, 196 backend tests, static checks, and rebuilt API/worker images passed; system `python3` remains 3.14.6. |
+| R2–R28 | NOT STARTED | Blocked behind the preceding remediation phase. |
 
 ## Qualification rule
 
