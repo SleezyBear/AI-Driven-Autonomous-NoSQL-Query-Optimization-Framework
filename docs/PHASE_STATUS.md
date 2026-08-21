@@ -58,7 +58,7 @@
 | 53 | Demo mode | COMPLETE — PASS | `make phase53-acceptance` |
 | 54 | Full autonomous mode | COMPLETE — PASS | `make phase54-acceptance` |
 | 55 | Complete reversion test | COMPLETE — PASS | `make phase55-acceptance` |
-| 56 | Not started | Not started | Defined in master implementation plan |
+| 56 | Full acceptance | COMPLETE — PASS | `make acceptance` |
 
 Phase progression is strictly one phase at a time: implement, run its test and prior tests, fix regressions, then update this document.
 
@@ -437,3 +437,10 @@ Phase progression is strictly one phase at a time: implement, run its test and p
 - The complete reversion sequence proves `S0 → optimizer index → S1 → optimizer query settings → S2`, followed by `S2 → S1 → S0`, restores the original fingerprint exactly.
 - Injected human index drift causes ownership-verified automatic rollback to refuse mutation with `RELEVANT_DRIFT_DETECTED`.
 - Focused reversion verification reports 2 passing tests; full regression reached 191 backend tests with Ruff, mypy, dependency preflight, and whitespace validation passing.
+
+## Phase 56 record
+
+- Result: PASS
+- `make acceptance` now runs the complete required final gate: environment compatibility, dependency checks, backend tests, lint, typing, migration, adapter and permission safety checks, statistical, ledger, security, Node 22 frontend, Playwright, CommerceBench, SafetyBench, rollback, provider, and portability verification.
+- The Makefile boundary checker confirms every Python recipe invokes the project-owned `./nosql/bin/python` interpreter.
+- The pinned Playwright browser smoke verifies the rebuilt frontend's target dashboard and navigation. The final acceptance command passed end-to-end on the supported Intel Mac environment.

@@ -37,8 +37,29 @@ paper-env:
 	docker compose -f docker-compose.yml -f docker-compose.paper.yml --profile paper up -d
 
 acceptance:
+	$(PYTHON) scripts/verify_environment.py
 	$(PIP) check
-	$(MAKE) phase0-acceptance
+	$(PYTHON) scripts/check_python_dependencies.py
+	$(PYTHON) scripts/check_makefile_python.py
+	$(PYTHON) -m pytest backend/tests
+	$(PYTHON) -m ruff check backend benchmarks scripts
+	MYPYPATH=backend $(PYTHON) -m mypy backend/app benchmarks scripts/collect_hardware_manifest.py scripts/demo_mode.py scripts/check_makefile_python.py
+	$(PYTHON) -m alembic -c backend/alembic.ini upgrade head
+	$(PYTHON) -m pytest backend/tests/adapters
+	$(PYTHON) -m pytest backend/tests/auth backend/tests/mongodb/test_executor_permissions.py backend/tests/production
+	$(PYTHON) -m pytest backend/tests/unit/admission
+	$(PYTHON) -m pytest backend/tests/ledger
+	$(PYTHON) -m pytest backend/tests/security
+	docker run --rm --platform linux/amd64 -v "$(CURDIR)/frontend:/app" -w /app node:22.14.0-alpine npm test
+	docker compose --profile light up -d --build frontend
+	docker run --rm --platform linux/amd64 --add-host host.docker.internal:host-gateway -v "$(CURDIR)/frontend:/app" -w /app mcr.microsoft.com/playwright:v1.47.1-jammy npx playwright test
+	$(PYTHON) -m pytest backend/tests/commercebench
+	$(MAKE) nosqlbench-smoke
+	$(PYTHON) -m pytest backend/tests/safetybench
+	$(PYTHON) -m pytest backend/tests/rollback backend/tests/reversion
+	$(PYTHON) -m pytest backend/tests/ai
+	$(MAKE) phase47-acceptance
+	git diff --check
 
 nosqlbench-smoke:
 	docker compose --profile bench run --rm nosqlbench-smoke
