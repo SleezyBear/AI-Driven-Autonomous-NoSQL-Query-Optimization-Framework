@@ -47,7 +47,8 @@
 | 42 | SafetyBench | COMPLETE — PASS | `make safetybench` |
 | 43 | Baselines and ablations | COMPLETE — PASS | `make phase43-acceptance` |
 | 44 | API completion | COMPLETE — PASS | `make phase44-acceptance` |
-| 45–56 | Not started | Not started | Defined in master implementation plan |
+| 45 | Expert Mode | COMPLETE — PASS | `make phase45-acceptance` |
+| 46–56 | Not started | Not started | Defined in master implementation plan |
 
 Phase progression is strictly one phase at a time: implement, run its test and prior tests, fix regressions, then update this document.
 
@@ -343,3 +344,10 @@ Phase progression is strictly one phase at a time: implement, run its test and p
 - Until durable API read models are connected, each endpoint truthfully returns its group name, `not_configured` status, and an empty record collection; it does not fabricate operational data or add mutation authority.
 - `frontend/src/api/openapi.generated.ts` is generated from the FastAPI OpenAPI paths and checked for freshness by `scripts/generate_openapi_types.py --check`.
 - Focused API verification reports 17 passing tests; full regression reached 150 backend tests, and the pinned Node 22 production TypeScript build, Ruff, mypy, dependency preflight, and whitespace validation passed.
+
+## Phase 45 record
+
+- Result: PASS
+- The read-only `/expert` view exposes normalized telemetry, query hashes, environment fingerprints, candidate JSON, LLM input/output, retrieved memories, trial measurements, confidence intervals, per-metric verdicts, ledger state, and rollback preconditions.
+- Unavailable evidence is shown truthfully as unavailable until a run is selected. The rendered evidence catalog is tested to exclude password, credential, access-token, and MongoDB connection-string values; the page contains no action controls.
+- Focused Node 22 verification reports 5 passing frontend test files / 6 tests. The production frontend build, live `/expert` route, and full 150-test backend regression with Ruff, mypy, dependency preflight, and whitespace validation passed.
