@@ -56,7 +56,8 @@
 | 51 | Hardware manifest | COMPLETE — PASS | `make phase51-acceptance` |
 | 52 | Result export | COMPLETE — PASS | `make phase52-acceptance` |
 | 53 | Demo mode | COMPLETE — PASS | `make phase53-acceptance` |
-| 54–56 | Not started | Not started | Defined in master implementation plan |
+| 54 | Full autonomous mode | COMPLETE — PASS | `make phase54-acceptance` |
+| 55–56 | Not started | Not started | Defined in master implementation plan |
 
 Phase progression is strictly one phase at a time: implement, run its test and prior tests, fix regressions, then update this document.
 
@@ -419,3 +420,11 @@ Phase progression is strictly one phase at a time: implement, run its test and p
 - The workload command visibly traces slow workload → diagnose → candidate → sandbox → statistical admission → approval → deploy → measure → ledger → rollback. It uses the real sandbox evaluator, statistical admission, approval flow, production executor, append-only ledger, and ownership-verified rollback with a `FakeDatabaseAdapter` only.
 - Demo state is stored in ignored `.demo/state.json`; command order fails closed and no production database is contacted.
 - Focused demo verification reports 2 passing tests; full regression reached 185 backend tests with Ruff, mypy, dependency preflight, and whitespace validation passing.
+
+## Phase 54 record
+
+- Result: PASS
+- Deployment mode is now explicit: `APPROVAL_CONTROLLED` remains the default and `FULL_AUTONOMOUS` has a centralized approval-bypass allowlist containing only `CREATE_INDEX` and `SET_QUERY_SETTINGS_INDEX_HINT`.
+- Admission eligibility, typed-action validation, evidence and target-state checks, target locks, append-only ledger records, and exact ownership-verified rollback remain mandatory in full-autonomous mode.
+- The permanent approval gate for overwriting an existing query-settings hint remains enforced even in full-autonomous mode.
+- Focused autonomy and production verification reports 12 passing tests; full regression reached 189 backend tests with Ruff, mypy, dependency preflight, and whitespace validation passing.

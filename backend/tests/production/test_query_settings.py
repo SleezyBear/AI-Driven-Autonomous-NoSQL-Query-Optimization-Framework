@@ -6,6 +6,7 @@ from app.actions.schemas import SetQuerySettingsIndexHintAction
 from app.adapters.contracts import IndexSpec, Namespace, QuerySettingsIndexHint
 from app.adapters.fake import FakeDatabaseAdapter
 from app.approvals.flow import ApprovalFlow
+from app.autonomy.policy import DeploymentMode
 from app.ledger.chain import AppendOnlyLedger
 from app.production.executor import ProductionExecutionError
 from app.production.query_settings import (
@@ -56,7 +57,15 @@ async def test_existing_query_setting_requires_human_approval_and_restores_exact
     adapter, approvals, _, executor = await _executor()
     await adapter.set_query_settings_index_hint(Namespace("orders"), "shape-a", QuerySettingsIndexHint(("customer_created",)))
     action = _action(("customer_created",))
-    request = QuerySettingsDeploymentRequest("target-a", "action-a", action, "evidence-a", await executor.current_state_hash(action), "executor", semi_autonomous=False)
+    request = QuerySettingsDeploymentRequest(
+        "target-a",
+        "action-a",
+        action,
+        "evidence-a",
+        await executor.current_state_hash(action),
+        "executor",
+        DeploymentMode.FULL_AUTONOMOUS,
+    )
 
     with pytest.raises(PermissionError, match="current approval required"):
         await executor.deploy(request)
@@ -82,3 +91,24 @@ async def test_rollback_blocks_on_query_settings_drift() -> None:
 
     with pytest.raises(ProductionExecutionError, match="drift blocks exact rollback"):
         await executor.rollback(QuerySettingsRollbackRequest("target-a", result.applied_entry.entry_id, "rollback"))
+
+
+@pytest.mark.asyncio
+async def test_full_autonomous_mode_can_set_an_absent_allowed_indexes_hint() -> None:
+    adapter, approvals, _, executor = await _executor()
+    action = _action()
+
+    result = await executor.deploy(
+        QuerySettingsDeploymentRequest(
+            "target-a",
+            "action-a",
+            action,
+            "evidence-a",
+            await executor.current_state_hash(action),
+            "executor",
+            DeploymentMode.FULL_AUTONOMOUS,
+        )
+    )
+
+    assert result.applied_entry.forward_action["action_type"] == "SET_QUERY_SETTINGS_INDEX_HINT"
+    assert await adapter.get_query_settings_index_hint(Namespace("orders"), "shape-a") == QuerySettingsIndexHint(("customer_created",))

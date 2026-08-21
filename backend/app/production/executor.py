@@ -12,6 +12,7 @@ from app.actions.schemas import CreateIndexAction
 from app.adapters.contracts import DatabaseAdapter, IndexSpec, Namespace
 from app.admission.models import AdmissionResult, AdmissionStatus
 from app.approvals.flow import ApprovalFlow
+from app.autonomy.policy import DeploymentMode, approval_required
 from app.ledger.chain import AppendOnlyLedger, LedgerEntry
 
 
@@ -30,7 +31,7 @@ class DeploymentRequest:
     evidence_hash: str
     expected_state_hash: str
     actor: str
-    semi_autonomous: bool = True
+    deployment_mode: DeploymentMode = DeploymentMode.APPROVAL_CONTROLLED
 
 
 @dataclass(frozen=True)
@@ -64,7 +65,7 @@ class ProductionExecutor:
 
         lock = self._target_locks.setdefault(request.target_id, asyncio.Lock())
         async with lock:
-            if request.semi_autonomous:
+            if approval_required(request.deployment_mode, request.action.action_type):
                 self._approvals.require_current_approval(request.action_id, request.evidence_hash, request.target_id)
 
             before_state = await self._current_state(request.action)

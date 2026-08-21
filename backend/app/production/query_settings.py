@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from app.actions.schemas import SetQuerySettingsIndexHintAction
 from app.adapters.contracts import DatabaseAdapter, Namespace, QuerySettingsIndexHint
 from app.approvals.flow import ApprovalFlow
+from app.autonomy.policy import DeploymentMode, approval_required
 from app.ledger.chain import AppendOnlyLedger, LedgerEntry
 from app.production.executor import ProductionExecutionError
 
@@ -24,7 +25,7 @@ class QuerySettingsDeploymentRequest:
     evidence_hash: str
     expected_state_hash: str
     actor: str
-    semi_autonomous: bool = True
+    deployment_mode: DeploymentMode = DeploymentMode.APPROVAL_CONTROLLED
 
 
 @dataclass(frozen=True)
@@ -67,7 +68,11 @@ class QuerySettingsExecutor:
                 raise ProductionExecutionError("current query-settings state differs from verified evidence")
             if _allowed_indexes(before) != request.action.previous_allowed_indexes:
                 raise ProductionExecutionError("prior query-settings state differs from typed inverse evidence")
-            if before is not None or request.semi_autonomous:
+            if approval_required(
+                request.deployment_mode,
+                request.action.action_type,
+                permanent_human_gate=before is not None,
+            ):
                 self._approvals.require_current_approval(request.action_id, request.evidence_hash, request.target_id)
             await self._verify_indexes_exist(request.action)
 

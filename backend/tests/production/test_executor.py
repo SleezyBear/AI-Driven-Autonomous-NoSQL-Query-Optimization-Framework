@@ -7,6 +7,7 @@ from app.adapters.contracts import IndexSpec, Namespace
 from app.adapters.fake import FakeDatabaseAdapter
 from app.admission.models import AdmissionResult, AdmissionStatus, BenchmarkProfile
 from app.approvals.flow import ApprovalFlow
+from app.autonomy.policy import DeploymentMode
 from app.ledger.chain import AppendOnlyLedger
 from app.production.executor import DeploymentRequest, ProductionExecutionError, ProductionExecutor
 
@@ -105,3 +106,26 @@ async def test_target_state_drift_is_rejected_before_execution() -> None:
         await executor.deploy(request)
 
     assert [index.name for index in await adapter.list_indexes(Namespace(collection="orders"))] == ["drift"]
+
+
+@pytest.mark.asyncio
+async def test_full_autonomous_create_index_keeps_admission_state_and_ledger_gates() -> None:
+    adapter = FakeDatabaseAdapter((Namespace(collection="orders"),))
+    ledger = AppendOnlyLedger()
+    executor = ProductionExecutor(adapter, ApprovalFlow(), ledger)
+    action = _action()
+    request = DeploymentRequest(
+        "target-1",
+        "candidate-1",
+        action,
+        _admission(),
+        "evidence-a",
+        await executor.current_state_hash(action),
+        "production-executor",
+        DeploymentMode.FULL_AUTONOMOUS,
+    )
+
+    result = await executor.deploy(request)
+
+    assert result.applied_entry.forward_action["phase"] == "APPLIED"
+    assert AppendOnlyLedger.verify(ledger.entries)
