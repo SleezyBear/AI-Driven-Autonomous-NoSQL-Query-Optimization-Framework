@@ -46,7 +46,8 @@
 | 41 | NoSQLBench | COMPLETE — PASS | `make nosqlbench-smoke` |
 | 42 | SafetyBench | COMPLETE — PASS | `make safetybench` |
 | 43 | Baselines and ablations | COMPLETE — PASS | `make phase43-acceptance` |
-| 44–56 | Not started | Not started | Defined in master implementation plan |
+| 44 | API completion | COMPLETE — PASS | `make phase44-acceptance` |
+| 45–56 | Not started | Not started | Defined in master implementation plan |
 
 Phase progression is strictly one phase at a time: implement, run its test and prior tests, fix regressions, then update this document.
 
@@ -334,3 +335,11 @@ Phase progression is strictly one phase at a time: implement, run its test and p
 - Every no-gate mode is enforced as sandbox-only and cannot be production-deployment eligible. The experiment ledger itself has no deployment or database-mutation capability.
 - Per-mode aggregation collects mean performance improvement, unsafe acceptances, safe rejections, regressions prevented, mean evaluation overhead, mean AI overhead, rollbacks, and inconclusive rate.
 - Focused ablation verification reports 7 passing tests; full regression reached 133 backend tests with Ruff, mypy, dependency preflight, and whitespace validation passing.
+
+## Phase 44 record
+
+- Result: PASS
+- The versioned `/api/v1` contract now exposes read-only endpoints for auth, targets, telemetry, workloads, query-shapes, runs, candidates, evaluations, admissions, approvals, ledger, rollbacks, experience, benchmarks, settings, and system.
+- Until durable API read models are connected, each endpoint truthfully returns its group name, `not_configured` status, and an empty record collection; it does not fabricate operational data or add mutation authority.
+- `frontend/src/api/openapi.generated.ts` is generated from the FastAPI OpenAPI paths and checked for freshness by `scripts/generate_openapi_types.py --check`.
+- Focused API verification reports 17 passing tests; full regression reached 150 backend tests, and the pinned Node 22 production TypeScript build, Ruff, mypy, dependency preflight, and whitespace validation passed.

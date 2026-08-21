@@ -1,7 +1,7 @@
 PYTHON := ./nosql/bin/python
 PIP := ./nosql/bin/python -m pip
 
-.PHONY: preflight wheel-test phase0-acceptance phase15-acceptance pip-check test dev replica-test-env paper-env acceptance nosqlbench-smoke safetybench phase43-acceptance
+.PHONY: preflight wheel-test phase0-acceptance phase15-acceptance pip-check test dev replica-test-env paper-env acceptance nosqlbench-smoke safetybench phase43-acceptance phase44-acceptance
 
 preflight:
 	$(PIP) check
@@ -48,3 +48,7 @@ safetybench:
 
 phase43-acceptance:
 	$(PYTHON) -m pytest backend/tests/ablations
+
+phase44-acceptance:
+	$(PYTHON) -m pytest backend/tests/api
+	$(PYTHON) scripts/generate_openapi_types.py --check

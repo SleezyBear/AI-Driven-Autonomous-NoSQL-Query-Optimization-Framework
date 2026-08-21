@@ -14,10 +14,12 @@ from fastapi.responses import JSONResponse
 from starlette.responses import Response
 
 from app.auth.routes import router as auth_router
+from app.api.routes import router as api_router
 
 
 app = FastAPI(title="AI-Driven Autonomous NoSQL Query Optimization Framework")
 app.include_router(auth_router)
+app.include_router(api_router)
 _production = os.getenv("APP_ENV", "development") == "production"
 _allowed_origins = [origin for origin in os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:5173").split(",") if origin]
 _allowed_hosts = [host for host in os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1,testserver,api").split(",") if host]
