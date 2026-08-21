@@ -48,7 +48,8 @@
 | 43 | Baselines and ablations | COMPLETE — PASS | `make phase43-acceptance` |
 | 44 | API completion | COMPLETE — PASS | `make phase44-acceptance` |
 | 45 | Expert Mode | COMPLETE — PASS | `make phase45-acceptance` |
-| 46–56 | Not started | Not started | Defined in master implementation plan |
+| 46 | Second AI provider contract | COMPLETE — PASS | `make phase46-acceptance` |
+| 47–56 | Not started | Not started | Defined in master implementation plan |
 
 Phase progression is strictly one phase at a time: implement, run its test and prior tests, fix regressions, then update this document.
 
@@ -351,3 +352,10 @@ Phase progression is strictly one phase at a time: implement, run its test and p
 - The read-only `/expert` view exposes normalized telemetry, query hashes, environment fingerprints, candidate JSON, LLM input/output, retrieved memories, trial measurements, confidence intervals, per-metric verdicts, ledger state, and rollback preconditions.
 - Unavailable evidence is shown truthfully as unavailable until a run is selected. The rendered evidence catalog is tested to exclude password, credential, access-token, and MongoDB connection-string values; the page contains no action controls.
 - Focused Node 22 verification reports 5 passing frontend test files / 6 tests. The production frontend build, live `/expert` route, and full 150-test backend regression with Ruff, mypy, dependency preflight, and whitespace validation passed.
+
+## Phase 46 record
+
+- Result: PASS
+- `OpenAICompatibleAIProvider` implements the same typed advisory-only contract as Ollama through local OpenAI-compatible `/v1/chat/completions` and `/v1/embeddings` endpoints. It uses temperature zero, JSON-object output requests, privacy sanitization, structured validation, one retry for malformed structured output, and the shared benchmark/AI isolation lock.
+- An in-process local fake server verifies both endpoint contracts; no external service is used. `DEFAULT_AI_PROVIDER` remains `ollama`.
+- Focused provider verification reports 5 passing tests; full regression reached 152 backend tests with Ruff, mypy, dependency preflight, and whitespace validation passing.
