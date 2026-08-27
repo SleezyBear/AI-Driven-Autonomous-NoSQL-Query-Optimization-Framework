@@ -15,7 +15,7 @@ KNOWN_ID = "customer-123456"
 
 @pytest.mark.parametrize("mode", (PrivacyMode.LOCAL_NORMALIZED, PrivacyMode.STRICT_HASHED))
 def test_privacy_modes_keep_known_literals_out_of_logs_and_postgres_evidence(mode: PrivacyMode) -> None:
-    boundary = PrivacyBoundary(mode)
+    boundary = PrivacyBoundary(mode, hmac_key="test-privacy-key")
     source = {"email": KNOWN_EMAIL, "customer_id": KNOWN_ID, "count": 7}
 
     log_payload = json.dumps(boundary.for_log(source), sort_keys=True)
@@ -28,7 +28,7 @@ def test_privacy_modes_keep_known_literals_out_of_logs_and_postgres_evidence(mod
     if mode is PrivacyMode.LOCAL_NORMALIZED:
         assert "<string>" in postgres_evidence
     else:
-        assert "sha256:" in postgres_evidence
+        assert "hmac-sha256:" in postgres_evidence
 
 
 @pytest.mark.asyncio

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import hashlib
+import hmac
 import json
 import re
 from dataclasses import dataclass
@@ -28,11 +28,19 @@ class PrivacyBoundary:
     """Convert untrusted literals to safe evidence before any external boundary."""
 
     mode: PrivacyMode
+    hmac_key: bytes | str | None = None
+
+    def __post_init__(self) -> None:
+        if self.mode is PrivacyMode.STRICT_HASHED and not self.hmac_key:
+            raise ValueError("STRICT_HASHED privacy requires a non-empty HMAC key")
 
     def protect(self, value: Any) -> Any:
         """Recursively remove literal values while retaining structural evidence."""
         if isinstance(value, dict):
-            return {str(key): self.protect(item) for key, item in value.items()}
+            return {
+                self.pseudonymize_identifier(str(key)) if self.mode is PrivacyMode.STRICT_HASHED else str(key): self.protect(item)
+                for key, item in value.items()
+            }
         if isinstance(value, list):
             return [self.protect(item) for item in value]
         if isinstance(value, tuple):
@@ -41,7 +49,13 @@ class PrivacyBoundary:
             return value
         if self.mode is PrivacyMode.LOCAL_NORMALIZED:
             return _type_token(value)
-        return "sha256:" + _hash(value)
+        return "hmac-sha256:" + self._pseudonym(value)
+
+    def pseudonymize_identifier(self, identifier: str) -> str:
+        """Return a stable keyed pseudonym for a database, collection, or field name."""
+        if self.mode is PrivacyMode.LOCAL_NORMALIZED:
+            return identifier
+        return "hmac-sha256:" + self._pseudonym(identifier)
 
     def serialize_for_postgres(self, evidence: Any) -> str:
         """Return safe JSON-shaped evidence suitable for PostgreSQL persistence."""
@@ -53,11 +67,19 @@ class PrivacyBoundary:
 
     def sanitize_prompt_text(self, prompt: str) -> str:
         """Remove common free-text literal forms before an Ollama request is captured."""
-        replacement = "<literal>" if self.mode is PrivacyMode.LOCAL_NORMALIZED else "sha256:<redacted>"
+        replacement = "<literal>" if self.mode is PrivacyMode.LOCAL_NORMALIZED else "hmac-sha256:<redacted>"
         sanitized = _EMAIL.sub(replacement, prompt)
         sanitized = _UUID.sub(replacement, sanitized)
         sanitized = _IDENTIFIER.sub(replacement, sanitized)
         return _QUOTED.sub(replacement, sanitized)
+
+    def _pseudonym(self, value: Any) -> str:
+        key = self.hmac_key
+        if isinstance(key, str):
+            key = key.encode("utf-8")
+        assert key is not None
+        encoded = json.dumps(value, sort_keys=True, separators=(",", ":"), default=str)
+        return hmac.new(key, encoded.encode("utf-8"), "sha256").hexdigest()
 
 
 def _type_token(value: Any) -> str:
@@ -68,8 +90,3 @@ def _type_token(value: Any) -> str:
     if isinstance(value, float):
         return "<number>"
     return "<" + type(value).__name__ + ">"
-
-
-def _hash(value: Any) -> str:
-    encoded = json.dumps(value, sort_keys=True, separators=(",", ":"), default=str)
-    return hashlib.sha256(encoded.encode("utf-8")).hexdigest()

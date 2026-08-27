@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from typing import Any
 
 import pytest
@@ -46,7 +47,7 @@ async def test_query_stats_is_preferred_over_all_fallbacks() -> None:
     coordinator = TelemetryCoordinator(
         (
             QueryStatsTelemetryProvider(database),
-            DiagnosticLogTelemetryProvider(("diagnostic observation",)),
+            DiagnosticLogTelemetryProvider((_diagnostic_line(),)),
             ProfilerTelemetryProvider(database),
             CurrentOpTelemetryProvider(database),
         )
@@ -64,7 +65,7 @@ async def test_diagnostic_log_is_selected_when_query_stats_is_unavailable() -> N
     coordinator = TelemetryCoordinator(
         (
             QueryStatsTelemetryProvider(database),
-            DiagnosticLogTelemetryProvider(("diagnostic observation",)),
+            DiagnosticLogTelemetryProvider((_diagnostic_line(),)),
             ProfilerTelemetryProvider(database),
             CurrentOpTelemetryProvider(database),
         )
@@ -96,3 +97,6 @@ async def test_disabled_profiler_is_not_enabled_or_selected() -> None:
         {"currentOp": 1, "$all": False},
     ]
 
+
+def _diagnostic_line() -> str:
+    return json.dumps({"attr": {"ns": "commerce.orders", "command": {"find": "orders"}}})
