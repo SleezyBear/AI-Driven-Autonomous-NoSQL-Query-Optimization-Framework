@@ -33,7 +33,8 @@ qualified. `scripts/check_system_pass_registry.py` enforces that every future
 | R9 — complete API implementation | COMPLETE — INTEGRATION_PASS | Every required `/api/v1` group now exposes a paginated persisted resource route rather than a fabricated `not_configured` response; target reads are ownership-filtered and target creation is explicit. |
 | R10 — correct metric semantics | COMPLETE — UNIT_PASS | Latency percentiles and throughput use successful operations only, failures remain independently counted, and cumulative server counters are differenced into canonical utilization and per-operation values. |
 | R11 — telemetry correctness and privacy | COMPLETE — UNIT_PASS | MongoDB 8-shaped query-stats, profiler, current-op, and structured diagnostic-log records are normalized without literals; strict privacy uses keyed HMAC pseudonyms for identifiers and values. |
-| R12–R28 | NOT STARTED | Blocked behind the preceding remediation phase. |
+| R12 — real CommerceBench | COMPLETE — UNIT_PASS | Exact SMOKE, STANDARD, and PUBLICATION record-count contracts, mixed read/write workload shapes, generator version, and content-derived dataset fingerprints are defined; the SMOKE dataset materializes the required 34,500 records deterministically. |
+| R13–R28 | NOT STARTED | Blocked behind the preceding remediation phase. |
 
 ## Qualification rule
 

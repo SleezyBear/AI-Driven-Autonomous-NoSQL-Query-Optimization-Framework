@@ -10,8 +10,14 @@ from random import Random
 from typing import Any
 
 COMMERCEBENCH_SEED = 42
-GENERATOR_VERSION = "1"
+GENERATOR_VERSION = "2"
 COLLECTIONS = ("customers", "products", "orders", "events", "inventory")
+PROFILE_RECORD_COUNTS: dict[str, tuple[int, int, int, int, int]] = {
+    # customers, products, orders, events, inventory
+    "smoke": (1_000, 500, 10_000, 20_000, 3_000),
+    "standard": (20_000, 10_000, 200_000, 500_000, 30_000),
+    "publication": (100_000, 50_000, 1_000_000, 2_000_000, 150_000),
+}
 
 
 class WorkloadProfile(str, Enum):
@@ -28,6 +34,7 @@ class DatasetSnapshot:
 
     profile: WorkloadProfile
     seed: int
+    generator_version: str
     collections: tuple[tuple[str, tuple[dict[str, Any], ...]], ...]
     fingerprint: str
 
@@ -35,19 +42,18 @@ class DatasetSnapshot:
         """Return documents for a declared CommerceBench collection."""
         return dict(self.collections)[collection]
 
+    @property
+    def collection_counts(self) -> dict[str, int]:
+        """The persistable, exact record count for every generated collection."""
+        return {name: len(documents) for name, documents in self.collections}
+
 
 class CommerceBench:
     """Generate deterministic, literal-free CommerceBench datasets from seed 42."""
 
-    _VOLUMES: dict[WorkloadProfile, tuple[int, int, int, int]] = {
-        WorkloadProfile.SMOKE: (10, 20, 40, 60),
-        WorkloadProfile.STANDARD: (100, 200, 500, 750),
-        WorkloadProfile.PUBLICATION: (1000, 2000, 5000, 7500),
-    }
-
     def reset(self, profile: WorkloadProfile) -> DatasetSnapshot:
         """Generate a fresh deterministic snapshot; repeated resets have identical content."""
-        customer_count, product_count, order_count, event_count = self._VOLUMES[profile]
+        customer_count, product_count, order_count, event_count, inventory_count = PROFILE_RECORD_COUNTS[profile.value]
         random = Random(COMMERCEBENCH_SEED)
         customers = tuple(
             {"_id": customer_id, "segment": ("consumer", "business")[customer_id % 2], "region": customer_id % 5}
@@ -77,8 +83,8 @@ class CommerceBench:
             for event_id in range(1, event_count + 1)
         )
         inventory = tuple(
-            {"_id": product_id, "product_id": product_id, "available": random.randint(0, 1000)}
-            for product_id in range(1, product_count + 1)
+            {"_id": inventory_id, "product_id": ((inventory_id - 1) % product_count) + 1, "available": random.randint(0, 1000)}
+            for inventory_id in range(1, inventory_count + 1)
         )
         collections: tuple[tuple[str, tuple[dict[str, Any], ...]], ...] = (
             ("customers", customers),
@@ -88,7 +94,7 @@ class CommerceBench:
             ("inventory", inventory),
         )
         fingerprint = self._fingerprint(profile, collections)
-        return DatasetSnapshot(profile, COMMERCEBENCH_SEED, collections, fingerprint)
+        return DatasetSnapshot(profile, COMMERCEBENCH_SEED, GENERATOR_VERSION, collections, fingerprint)
 
     @staticmethod
     def _fingerprint(

@@ -21,6 +21,8 @@ def main() -> int:
     snapshot = CommerceBench().reset(WorkloadProfile(arguments.profile))
     print(f"profile={snapshot.profile.value}")
     print(f"seed={snapshot.seed}")
+    print(f"generator_version={snapshot.generator_version}")
+    print(f"collection_counts={snapshot.collection_counts}")
     print(f"fingerprint={snapshot.fingerprint}")
     return 0
 
