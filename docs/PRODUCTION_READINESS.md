@@ -39,7 +39,8 @@ qualified. `scripts/check_system_pass_registry.py` enforces that every future
 | R15 — real sandbox cloning and evaluation | COMPLETE — INTEGRATION_PASS | A concrete MongoDB copier physically clones documents and relevant indexes into the separate evaluation target, validates dataset/version/FCV/workload facts, and fails if monitored optimizer-managed state changes during copying. |
 | R16 — schema-bound AI advisory contract | COMPLETE — UNIT_PASS | Versioned v1 diagnosis/ranking prompt assets, provider-supplied JSON schemas, invocation provenance (prompt version, model, sanitized input/hash, result, latency), fabricated-reference validation, and deterministic fallback on AI failure are covered by focused tests. |
 | R17 — real pgvector experience store | COMPLETE — INTEGRATION_PASS | PostgreSQL pgvector experience records persist the complete action, workload, prediction, outcome, embedding-model, and rollback evidence; retrieval is action-family scoped and survives an engine restart. |
-| R18–R28 | NOT STARTED | Blocked behind the preceding remediation phase. |
+| R18 — real post-deployment monitor | COMPLETE — INTEGRATION_PASS | The monitor computes catastrophic and sustained p99 regression, errors, timeouts, replica health, and workload comparability from fixed telemetry windows; it persists literal-free evidence to PostgreSQL and invokes only ownership-safe rollback. |
+| R19–R28 | NOT STARTED | Blocked behind the preceding remediation phase. |
 
 ## Qualification rule
 
