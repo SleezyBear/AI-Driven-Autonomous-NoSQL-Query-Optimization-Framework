@@ -28,6 +28,11 @@ class EvaluationState:
     source_topology_identity: str
     evaluation_topology_identity: str
     free_disk_bytes: int
+    mongodb_version: str = ""
+    feature_compatibility_version: str = ""
+    relevant_indexes_fingerprint: str = ""
+    query_settings_fingerprint: str = ""
+    workload_fingerprint: str = ""
 
 
 @dataclass(frozen=True)
