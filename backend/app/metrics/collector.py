@@ -46,6 +46,58 @@ class MetricSnapshot:
     error_count: int
     timeout_count: int
 
+    @property
+    def latency_milliseconds(self) -> tuple[float | None, float | None, float | None]:
+        """Successful-operation p50/p95/p99 latencies in milliseconds."""
+        return (self.p50_latency_ms, self.p95_latency_ms, self.p99_latency_ms)
+
+    @property
+    def replication_lag_milliseconds(self) -> float | None:
+        return None if self.replication_lag_seconds is None else self.replication_lag_seconds * 1_000
+
+
+@dataclass(frozen=True)
+class ServerCounterSample:
+    """Cumulative server counters captured at one end of a telemetry window."""
+
+    cpu_busy: float
+    cpu_total: float
+    memory_used_bytes: float
+    memory_total_bytes: float
+    disk_used_bytes: float
+    disk_total_bytes: float
+    disk_io_bytes: float
+    network_bytes: float
+
+
+@dataclass(frozen=True)
+class CounterDeltas:
+    """Canonical rate/utilization values differenced from window start and end."""
+
+    cpu_utilization: float
+    memory_utilization: float
+    disk_utilization: float
+    disk_io_bytes_per_op: float
+    network_bytes_per_op: float
+
+
+def derive_counter_deltas(window_start: ServerCounterSample, window_end: ServerCounterSample, successful_operations: int) -> CounterDeltas:
+    """Difference cumulative counters; never treat an absolute counter as a window metric."""
+    operations = max(successful_operations, 1)
+    cpu_total = max(window_end.cpu_total - window_start.cpu_total, 0.0)
+    cpu_busy = max(window_end.cpu_busy - window_start.cpu_busy, 0.0)
+    return CounterDeltas(
+        cpu_utilization=cpu_busy / cpu_total if cpu_total else 0.0,
+        memory_utilization=_ratio(window_end.memory_used_bytes, window_end.memory_total_bytes),
+        disk_utilization=_ratio(window_end.disk_used_bytes, window_end.disk_total_bytes),
+        disk_io_bytes_per_op=max(window_end.disk_io_bytes - window_start.disk_io_bytes, 0.0) / operations,
+        network_bytes_per_op=max(window_end.network_bytes - window_start.network_bytes, 0.0) / operations,
+    )
+
+
+def _ratio(numerator: float, denominator: float) -> float:
+    return min(1.0, max(0.0, numerator / denominator)) if denominator > 0 else 0.0
+
 
 class WorkloadMetricCollector:
     """Record completed workload operations and produce normalized percentiles and rates."""
@@ -61,9 +113,10 @@ class WorkloadMetricCollector:
     def snapshot(self, server_status: dict[str, Any], replication_lag_seconds: float | None) -> MetricSnapshot:
         """Produce all required metrics from workload records and server status data."""
         elapsed_seconds = max(perf_counter() - self._started_at, 0.001)
-        durations = [measurement.duration_ms for measurement in self._measurements]
-        reads = sum(measurement.operation_type == "read" for measurement in self._measurements)
-        writes = sum(measurement.operation_type == "write" for measurement in self._measurements)
+        successful = [measurement for measurement in self._measurements if not measurement.error and not measurement.timed_out]
+        durations = [measurement.duration_ms for measurement in successful]
+        reads = sum(measurement.operation_type == "read" for measurement in successful)
+        writes = sum(measurement.operation_type == "write" for measurement in successful)
         memory = cast(dict[str, Any], server_status.get("mem", {}))
         network = cast(dict[str, Any], server_status.get("network", {}))
         extra_info = cast(dict[str, Any], server_status.get("extra_info", {}))
@@ -75,7 +128,7 @@ class WorkloadMetricCollector:
             p50_latency_ms=self._percentile(durations, 50),
             p95_latency_ms=self._percentile(durations, 95),
             p99_latency_ms=self._percentile(durations, 99),
-            throughput_per_second=len(self._measurements) / elapsed_seconds,
+            throughput_per_second=len(successful) / elapsed_seconds,
             read_throughput_per_second=reads / elapsed_seconds,
             write_throughput_per_second=writes / elapsed_seconds,
             cpu_time_us=self._number(extra_info.get("user_time_us"))
@@ -102,4 +155,3 @@ class WorkloadMetricCollector:
     @staticmethod
     def _number(value: Any) -> float:
         return float(value) if isinstance(value, int | float) else 0.0
-

@@ -31,7 +31,8 @@ qualified. `scripts/check_system_pass_registry.py` enforces that every future
 | R7 — durable production ledger | COMPLETE — INTEGRATION_PASS | PostgreSQL ledger rows contain the required state/action and hash-chain evidence; restart verification passed and privileged disposable-row tampering was detected. |
 | R8 — durable crash recovery and idempotency | COMPLETE — INTEGRATION_PASS | Persisted intent and `INTENT_RECORDED`/`EXECUTION_STARTED`/`EFFECT_OBSERVED`/`EXECUTION_CONFIRMED` state support restart recovery; an observed exact effect was confirmed without duplicate mutation. |
 | R9 — complete API implementation | COMPLETE — INTEGRATION_PASS | Every required `/api/v1` group now exposes a paginated persisted resource route rather than a fabricated `not_configured` response; target reads are ownership-filtered and target creation is explicit. |
-| R10–R28 | NOT STARTED | Blocked behind the preceding remediation phase. |
+| R10 — correct metric semantics | COMPLETE — UNIT_PASS | Latency percentiles and throughput use successful operations only, failures remain independently counted, and cumulative server counters are differenced into canonical utilization and per-operation values. |
+| R11–R28 | NOT STARTED | Blocked behind the preceding remediation phase. |
 
 ## Qualification rule
 
