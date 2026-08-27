@@ -203,8 +203,13 @@ class SafetyResult(TimestampedUUID):
 
 class ApprovalRequest(TimestampedUUID):
     __tablename__ = "approval_requests"
-    admission_decision_id: Mapped[UUID] = mapped_column(ForeignKey("admission_decisions.id", ondelete="RESTRICT"), unique=True)
+    admission_decision_id: Mapped[UUID | None] = mapped_column(ForeignKey("admission_decisions.id", ondelete="RESTRICT"), unique=True)
     requested_by_user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    action_id: Mapped[str] = mapped_column(String(128), index=True)
+    target_id: Mapped[UUID] = mapped_column(ForeignKey("targets.id", ondelete="RESTRICT"), index=True)
+    candidate_id: Mapped[UUID] = mapped_column(PG_UUID(as_uuid=True), index=True)
+    evidence_hash: Mapped[str] = mapped_column(String(128))
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
     status: Mapped[str] = mapped_column(String(32))
 
 

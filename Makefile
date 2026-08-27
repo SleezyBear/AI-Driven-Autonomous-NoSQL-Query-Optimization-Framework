@@ -1,7 +1,7 @@
 PYTHON := ./nosql/bin/python
 PIP := ./nosql/bin/python -m pip
 
-.PHONY: preflight wheel-test phase0-acceptance phase-r0-acceptance phase-r1-acceptance phase-r2-acceptance phase-r3-acceptance phase-r4-acceptance phase15-acceptance pip-check test dev replica-test-env paper-env acceptance nosqlbench-smoke safetybench phase43-acceptance phase44-acceptance phase45-acceptance phase46-acceptance phase47-acceptance phase48-acceptance phase49-acceptance phase50-acceptance phase51-acceptance phase52-acceptance phase53-acceptance phase54-acceptance phase55-acceptance demo-reset demo-start demo-seed demo-workload
+.PHONY: preflight wheel-test phase0-acceptance phase-r0-acceptance phase-r1-acceptance phase-r2-acceptance phase-r3-acceptance phase-r4-acceptance phase-r5-acceptance phase15-acceptance pip-check test dev replica-test-env paper-env acceptance nosqlbench-smoke safetybench phase43-acceptance phase44-acceptance phase45-acceptance phase46-acceptance phase47-acceptance phase48-acceptance phase49-acceptance phase50-acceptance phase51-acceptance phase52-acceptance phase53-acceptance phase54-acceptance phase55-acceptance demo-reset demo-start demo-seed demo-workload
 
 preflight:
 	$(PIP) check
@@ -49,6 +49,14 @@ phase-r4-acceptance:
 	JWT_SIGNING_KEY='r4-test-signing-key-that-is-long-enough' docker compose --profile light up -d --wait postgres
 	$(PYTHON) -m alembic -c backend/alembic.ini upgrade head
 	JWT_SIGNING_KEY='r4-test-signing-key-that-is-long-enough' $(PYTHON) -m pytest backend/tests/auth/test_production_auth.py
+
+phase-r5-acceptance:
+	docker compose --profile light up -d --wait postgres
+	$(PYTHON) -m alembic -c backend/alembic.ini upgrade head
+	$(PYTHON) -m pytest backend/tests/approvals/test_durable_distributed.py
+	docker compose --profile light up -d --build api worker
+	docker compose --profile light restart api worker
+	docker compose --profile light up -d --wait api worker
 
 phase15-acceptance:
 	$(PYTHON) scripts/phase15_acceptance.py
