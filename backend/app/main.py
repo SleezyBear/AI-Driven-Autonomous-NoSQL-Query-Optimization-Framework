@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import os
+from contextlib import asynccontextmanager
 from uuid import uuid4
-from typing import Awaitable, Callable
+from typing import AsyncIterator, Awaitable, Callable
 
 import structlog
 from fastapi import FastAPI, Request
@@ -15,9 +16,21 @@ from starlette.responses import Response
 
 from app.auth.routes import router as auth_router
 from app.api.routes import router as api_router
+from app.db.runtime import create_control_plane_repositories
 
 
-app = FastAPI(title="AI-Driven Autonomous NoSQL Query Optimization Framework")
+@asynccontextmanager
+async def lifespan(application: FastAPI) -> AsyncIterator[None]:
+    """Attach the durable repository graph to this API process."""
+    engine, repositories = create_control_plane_repositories()
+    application.state.control_plane = repositories
+    try:
+        yield
+    finally:
+        await engine.dispose()
+
+
+app = FastAPI(title="AI-Driven Autonomous NoSQL Query Optimization Framework", lifespan=lifespan)
 app.include_router(auth_router)
 app.include_router(api_router)
 _production = os.getenv("APP_ENV", "development") == "production"

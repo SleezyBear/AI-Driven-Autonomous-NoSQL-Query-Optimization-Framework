@@ -89,6 +89,8 @@ services:
     profiles: ["light", "replica-test", "paper"]
     ports:
       - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql+asyncpg://control_plane:control_plane_dev_only@postgres:5432/control_plane
     depends_on:
       postgres:
         condition: service_healthy
@@ -106,6 +108,8 @@ services:
       context: .
       dockerfile: backend/worker.Dockerfile
     platform: linux/amd64
+    environment:
+      DATABASE_URL: postgresql+asyncpg://control_plane:control_plane_dev_only@postgres:5432/control_plane
     profiles: ["light", "replica-test", "paper"]
     depends_on:
       postgres:
