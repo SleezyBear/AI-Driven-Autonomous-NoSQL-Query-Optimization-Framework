@@ -244,6 +244,18 @@ class ExperienceRecord(TimestampedUUID):
     outcome: Mapped[str | None] = mapped_column(String(64))
     embedding: Mapped[list[float] | None] = mapped_column(Vector(768))
     evidence: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    adapter_type: Mapped[str] = mapped_column(String(64), default="mongodb")
+    action_type: Mapped[str] = mapped_column(String(64), index=True, default="CREATE_INDEX")
+    query_structure_summary: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    workload_features: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    bottleneck: Mapped[str | None] = mapped_column(String(128))
+    candidate_summary: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    prediction: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    admission_outcome: Mapped[str | None] = mapped_column(String(64))
+    actual_postdeploy_outcome: Mapped[str | None] = mapped_column(String(64))
+    rollback_outcome: Mapped[str | None] = mapped_column(String(64))
+    embedding_model: Mapped[str] = mapped_column(String(128), default="embeddinggemma")
+    embedding_model_version: Mapped[str] = mapped_column(String(128), default="unknown")
 
 
 class Job(TimestampedUUID):
