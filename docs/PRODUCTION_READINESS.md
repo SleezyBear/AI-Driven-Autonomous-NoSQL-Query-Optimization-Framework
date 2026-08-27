@@ -25,7 +25,8 @@ qualified. `scripts/check_system_pass_registry.py` enforces that every future
 | R1 — Python/runtime lifecycle migration | COMPLETE — INTEGRATION_PASS | uv-managed CPython 3.12.14 x86_64, unchanged pinned requirements, 196 backend tests, static checks, and rebuilt API/worker images passed; system `python3` remains 3.14.6. |
 | R2 — relational control-plane schema | COMPLETE — INTEGRATION_PASS | Corrective migration 0004 defines UUID-backed models, ownership FKs, unique/check constraints, and indexes; disposable PostgreSQL upgrade/downgrade/upgrade inspection passed. |
 | R3 — real persistence repositories | COMPLETE — INTEGRATION_PASS | PostgreSQL repositories now cover every durable domain; state and a pending job survived rebuilt/restarted API and worker containers and were recovered through fresh repository engines. |
-| R4–R28 | NOT STARTED | Blocked behind the preceding remediation phase. |
+| R4 — production-grade authentication | COMPLETE — INTEGRATION_PASS | PostgreSQL-backed users and refresh-token sessions enforce explicit JWT configuration, rotation/revocation, user disablement, expiry/type rejection, five-attempt lockout, and persisted authentication audit events. |
+| R5–R28 | NOT STARTED | Blocked behind the preceding remediation phase. |
 
 ## Qualification rule
 

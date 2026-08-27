@@ -45,9 +45,21 @@ class User(TimestampedUUID):
     __tablename__ = "users"
     email: Mapped[str] = mapped_column(String(320), unique=True, index=True)
     password_hash: Mapped[str] = mapped_column(Text)
+    role: Mapped[str] = mapped_column(String(32), default="VIEWER")
     status: Mapped[str] = mapped_column(String(32), default="ACTIVE")
     failed_login_count: Mapped[int] = mapped_column(Integer, default=0)
     locked_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class RefreshToken(TimestampedUUID):
+    """One-time refresh-token record; only a SHA-256 digest is retained."""
+
+    __tablename__ = "refresh_tokens"
+    user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    token_id: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    token_hash: Mapped[str] = mapped_column(String(128), unique=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class Target(TimestampedUUID):

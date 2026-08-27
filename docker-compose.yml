@@ -91,6 +91,7 @@ services:
       - "8000:8000"
     environment:
       DATABASE_URL: postgresql+asyncpg://control_plane:control_plane_dev_only@postgres:5432/control_plane
+      JWT_SIGNING_KEY: ${JWT_SIGNING_KEY:?Set JWT_SIGNING_KEY in your environment or .env file}
     depends_on:
       postgres:
         condition: service_healthy
@@ -110,6 +111,7 @@ services:
     platform: linux/amd64
     environment:
       DATABASE_URL: postgresql+asyncpg://control_plane:control_plane_dev_only@postgres:5432/control_plane
+      JWT_SIGNING_KEY: ${JWT_SIGNING_KEY:?Set JWT_SIGNING_KEY in your environment or .env file}
     profiles: ["light", "replica-test", "paper"]
     depends_on:
       postgres:

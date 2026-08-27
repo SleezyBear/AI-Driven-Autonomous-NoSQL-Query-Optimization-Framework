@@ -15,6 +15,7 @@ from fastapi.responses import JSONResponse
 from starlette.responses import Response
 
 from app.auth.routes import router as auth_router
+from app.auth.routes import jwt_service
 from app.api.routes import router as api_router
 from app.db.runtime import create_control_plane_repositories
 
@@ -22,6 +23,7 @@ from app.db.runtime import create_control_plane_repositories
 @asynccontextmanager
 async def lifespan(application: FastAPI) -> AsyncIterator[None]:
     """Attach the durable repository graph to this API process."""
+    jwt_service()
     engine, repositories = create_control_plane_repositories()
     application.state.control_plane = repositories
     try:

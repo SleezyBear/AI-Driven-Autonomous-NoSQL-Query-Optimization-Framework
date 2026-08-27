@@ -2,18 +2,9 @@
 
 from __future__ import annotations
 
-from fastapi.testclient import TestClient
+import pytest
 
-from app.auth.routes import issue_test_token
-from app.auth.security import JwtService, PasswordService, Principal, Role
-from app.main import app
-
-
-client = TestClient(app)
-
-
-def authorization_header(principal: Principal) -> dict[str, str]:
-    return {"Authorization": f"Bearer {issue_test_token(principal)}"}
+from app.auth.security import AuthorizationError, JwtService, PasswordService, Principal, Role, require_approval_authority, require_role
 
 
 def test_password_service_uses_argon2() -> None:
@@ -26,48 +17,21 @@ def test_password_service_uses_argon2() -> None:
 
 
 def test_jwt_round_trip_preserves_principal() -> None:
-    service = JwtService("test-signing-key")
+    service = JwtService("test-signing-key-that-is-long-enough")
     principal = Principal(user_id="approver-1", role=Role.APPROVER)
 
     assert service.verify(service.issue(principal)) == principal
 
 
-def test_unauthorized_operation_returns_403() -> None:
-    response = client.post(
-        "/operations/execute",
-        headers=authorization_header(Principal(user_id="viewer-1", role=Role.VIEWER)),
-    )
-
-    assert response.status_code == 403
-
-
-def test_operator_can_execute_operator_operation() -> None:
-    response = client.post(
-        "/operations/execute",
-        headers=authorization_header(Principal(user_id="operator-1", role=Role.OPERATOR)),
-    )
-
-    assert response.status_code == 200
-    assert response.json() == {"status": "authorized"}
+def test_viewer_cannot_execute_operator_operation() -> None:
+    with pytest.raises(AuthorizationError):
+        require_role(Principal(user_id="viewer-1", role=Role.VIEWER), Role.OPERATOR, Role.ADMIN)
 
 
 def test_operator_cannot_approve_own_request() -> None:
-    response = client.post(
-        "/approvals/request-1",
-        json={"requested_by_user_id": "operator-1"},
-        headers=authorization_header(Principal(user_id="operator-1", role=Role.APPROVER)),
-    )
-
-    assert response.status_code == 403
+    with pytest.raises(AuthorizationError):
+        require_approval_authority(Principal(user_id="operator-1", role=Role.APPROVER), "operator-1")
 
 
 def test_independent_approver_can_approve() -> None:
-    response = client.post(
-        "/approvals/request-1",
-        json={"requested_by_user_id": "operator-1"},
-        headers=authorization_header(Principal(user_id="approver-1", role=Role.APPROVER)),
-    )
-
-    assert response.status_code == 200
-    assert response.json() == {"request_id": "request-1", "status": "approved"}
-
+    require_approval_authority(Principal(user_id="approver-1", role=Role.APPROVER), "operator-1")

@@ -59,6 +59,10 @@ class UserRepository(PostgresRepository[models.User]):
     model = models.User
 
 
+class RefreshTokenRepository(PostgresRepository[models.RefreshToken]):
+    model = models.RefreshToken
+
+
 class TargetRepository(PostgresRepository[models.Target]):
     model = models.Target
 
@@ -180,6 +184,7 @@ class ControlPlaneRepositories:
 
     def __init__(self, engine: AsyncEngine) -> None:
         self.users = UserRepository(engine)
+        self.refresh_tokens = RefreshTokenRepository(engine)
         self.targets = TargetRepository(engine)
         self.credentials = CredentialRepository(engine)
         self.evaluation_mappings = EvaluationMappingRepository(engine)
