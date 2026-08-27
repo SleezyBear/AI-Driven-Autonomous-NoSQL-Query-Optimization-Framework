@@ -30,7 +30,8 @@ qualified. `scripts/check_system_pass_registry.py` enforces that every future
 | R6 — distributed target locking | COMPLETE — INTEGRATION_PASS | PostgreSQL session advisory locks derived solely from target IDs excluded a competing independent worker; authority was safely recoverable after release. |
 | R7 — durable production ledger | COMPLETE — INTEGRATION_PASS | PostgreSQL ledger rows contain the required state/action and hash-chain evidence; restart verification passed and privileged disposable-row tampering was detected. |
 | R8 — durable crash recovery and idempotency | COMPLETE — INTEGRATION_PASS | Persisted intent and `INTENT_RECORDED`/`EXECUTION_STARTED`/`EFFECT_OBSERVED`/`EXECUTION_CONFIRMED` state support restart recovery; an observed exact effect was confirmed without duplicate mutation. |
-| R9–R28 | NOT STARTED | Blocked behind the preceding remediation phase. |
+| R9 — complete API implementation | COMPLETE — INTEGRATION_PASS | Every required `/api/v1` group now exposes a paginated persisted resource route rather than a fabricated `not_configured` response; target reads are ownership-filtered and target creation is explicit. |
+| R10–R28 | NOT STARTED | Blocked behind the preceding remediation phase. |
 
 ## Qualification rule
 
