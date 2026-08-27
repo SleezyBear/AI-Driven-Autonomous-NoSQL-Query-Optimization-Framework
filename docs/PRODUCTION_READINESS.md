@@ -37,7 +37,8 @@ qualified. `scripts/check_system_pass_registry.py` enforces that every future
 | R13 — real MongoDB benchmark executor | COMPLETE — INTEGRATION_PASS | Real MongoDB 8 CommerceBench execution restores both AB/BA arms, verifies the environment, warms up and schedules mixed operations, records monotonic successful/error/timeout timing and counter deltas, and writes typed trial evidence. |
 | R14 — statistical correctness | COMPLETE — UNIT_PASS | Pair sufficiency is enforced per protected metric; higher-is-better zero behavior is explicit; a three-observation minimum applies; and a shared-resample paired max-statistic bootstrap supplies simultaneous protected-family safety evidence. |
 | R15 — real sandbox cloning and evaluation | COMPLETE — INTEGRATION_PASS | A concrete MongoDB copier physically clones documents and relevant indexes into the separate evaluation target, validates dataset/version/FCV/workload facts, and fails if monitored optimizer-managed state changes during copying. |
-| R16–R28 | NOT STARTED | Blocked behind the preceding remediation phase. |
+| R16 — schema-bound AI advisory contract | COMPLETE — UNIT_PASS | Versioned v1 diagnosis/ranking prompt assets, provider-supplied JSON schemas, invocation provenance (prompt version, model, sanitized input/hash, result, latency), fabricated-reference validation, and deterministic fallback on AI failure are covered by focused tests. |
+| R17–R28 | NOT STARTED | Blocked behind the preceding remediation phase. |
 
 ## Qualification rule
 

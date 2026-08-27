@@ -1,7 +1,7 @@
 PYTHON := ./nosql/bin/python
 PIP := ./nosql/bin/python -m pip
 
-.PHONY: preflight wheel-test phase0-acceptance phase-r0-acceptance phase-r1-acceptance phase-r2-acceptance phase-r3-acceptance phase-r4-acceptance phase-r5-acceptance phase-r6-acceptance phase-r7-acceptance phase-r8-acceptance phase-r9-acceptance phase-r10-acceptance phase-r11-acceptance phase-r12-acceptance phase-r13-acceptance phase-r14-acceptance phase-r15-acceptance phase15-acceptance pip-check test dev replica-test-env paper-env acceptance nosqlbench-smoke safetybench phase43-acceptance phase44-acceptance phase45-acceptance phase46-acceptance phase47-acceptance phase48-acceptance phase49-acceptance phase50-acceptance phase51-acceptance phase52-acceptance phase53-acceptance phase54-acceptance phase55-acceptance demo-reset demo-start demo-seed demo-workload
+.PHONY: preflight wheel-test phase0-acceptance phase-r0-acceptance phase-r1-acceptance phase-r2-acceptance phase-r3-acceptance phase-r4-acceptance phase-r5-acceptance phase-r6-acceptance phase-r7-acceptance phase-r8-acceptance phase-r9-acceptance phase-r10-acceptance phase-r11-acceptance phase-r12-acceptance phase-r13-acceptance phase-r14-acceptance phase-r15-acceptance phase-r16-acceptance phase15-acceptance pip-check test dev replica-test-env paper-env acceptance nosqlbench-smoke safetybench phase43-acceptance phase44-acceptance phase45-acceptance phase46-acceptance phase47-acceptance phase48-acceptance phase49-acceptance phase50-acceptance phase51-acceptance phase52-acceptance phase53-acceptance phase54-acceptance phase55-acceptance demo-reset demo-start demo-seed demo-workload
 
 preflight:
 	$(PIP) check
@@ -97,6 +97,10 @@ phase-r15-acceptance:
 	docker compose --profile light up -d --wait mongo-monitored mongo-evaluation
 	$(PYTHON) -m pytest backend/tests/evaluation
 	$(PYTHON) scripts/verify_evaluation_copy.py
+
+phase-r16-acceptance:
+	$(PYTHON) -m pytest backend/tests/ai backend/tests/pipeline backend/tests/security/test_privacy.py
+	$(PYTHON) -m ruff check backend/app/ai/provider.py backend/app/pipeline/diagnosis.py backend/tests/ai/test_provider.py backend/tests/pipeline/test_diagnosis.py
 
 phase15-acceptance:
 	$(PYTHON) scripts/phase15_acceptance.py

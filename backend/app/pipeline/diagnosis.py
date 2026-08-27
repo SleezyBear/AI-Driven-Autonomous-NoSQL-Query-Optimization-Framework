@@ -55,8 +55,20 @@ class DiagnosisPipeline:
         evidence = evidence_builder(snapshot)
         generated = candidate_generator(evidence)
         memory_ranked = self._experience_memory.prioritize(generated, experience_embedding)
-        diagnosis = await self._provider.diagnose(evidence)
-        ranking = await self._provider.rank_candidates(memory_ranked)
+        try:
+            diagnosis = await self._provider.diagnose(evidence)
+            ranking = await self._provider.rank_candidates(memory_ranked)
+            self._validate_evidence_refs(diagnosis.evidence_refs, evidence)
+            self._validate_evidence_refs(ranking.evidence_refs, evidence)
+        except Exception:
+            # AI is advisory-only. Its unavailability or invalid output must not
+            # interrupt deterministic candidate generation, sandboxing, or admission.
+            diagnosis = Diagnosis(
+                summary="AI advisory output unavailable; deterministic safeguards retained.",
+                evidence=(),
+                limitations=("AI_UNAVAILABLE_OR_INVALID",),
+            )
+            ranking = CandidateRanking(candidate_ids=(), rationale="AI advisory output unavailable")
         selected = self._select_known_candidates(generated, ranking.candidate_ids)
         evaluated: list[EvaluatedCandidate] = []
         for candidate_id in selected[:MAX_INITIAL_CANDIDATES]:
@@ -71,3 +83,9 @@ class DiagnosisPipeline:
         selected = [candidate_id for candidate_id in ranked if candidate_id in known]
         selected.extend(candidate_id for candidate_id in generated if candidate_id not in selected)
         return tuple(selected)
+
+    @staticmethod
+    def _validate_evidence_refs(references: tuple[str, ...], evidence: str) -> None:
+        """Reject AI evidence references that are absent from deterministic evidence."""
+        if any(reference not in evidence for reference in references):
+            raise ValueError("AI response contains a fabricated evidence reference")
