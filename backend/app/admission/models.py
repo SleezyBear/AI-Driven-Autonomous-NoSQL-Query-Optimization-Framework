@@ -123,6 +123,8 @@ class AdmissionResult:
     primary_benefit_result: MetricResult | None = None
     safety_invariant_results: tuple[str, ...] = field(default_factory=tuple)
     production_eligible: bool = False
+    family_wise_passed: bool | None = None
+    family_wise_upper_bound: float | None = None
 
 
 def as_tuple(values: Sequence[float]) -> tuple[float, ...]:

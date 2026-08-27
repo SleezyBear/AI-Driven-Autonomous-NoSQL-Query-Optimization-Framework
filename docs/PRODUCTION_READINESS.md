@@ -35,7 +35,8 @@ qualified. `scripts/check_system_pass_registry.py` enforces that every future
 | R11 — telemetry correctness and privacy | COMPLETE — UNIT_PASS | MongoDB 8-shaped query-stats, profiler, current-op, and structured diagnostic-log records are normalized without literals; strict privacy uses keyed HMAC pseudonyms for identifiers and values. |
 | R12 — real CommerceBench | COMPLETE — UNIT_PASS | Exact SMOKE, STANDARD, and PUBLICATION record-count contracts, mixed read/write workload shapes, generator version, and content-derived dataset fingerprints are defined; the SMOKE dataset materializes the required 34,500 records deterministically. |
 | R13 — real MongoDB benchmark executor | COMPLETE — INTEGRATION_PASS | Real MongoDB 8 CommerceBench execution restores both AB/BA arms, verifies the environment, warms up and schedules mixed operations, records monotonic successful/error/timeout timing and counter deltas, and writes typed trial evidence. |
-| R14–R28 | NOT STARTED | Blocked behind the preceding remediation phase. |
+| R14 — statistical correctness | COMPLETE — UNIT_PASS | Pair sufficiency is enforced per protected metric; higher-is-better zero behavior is explicit; a three-observation minimum applies; and a shared-resample paired max-statistic bootstrap supplies simultaneous protected-family safety evidence. |
+| R15–R28 | NOT STARTED | Blocked behind the preceding remediation phase. |
 
 ## Qualification rule
 
