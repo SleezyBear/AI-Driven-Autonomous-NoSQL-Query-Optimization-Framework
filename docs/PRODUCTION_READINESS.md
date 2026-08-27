@@ -28,7 +28,8 @@ qualified. `scripts/check_system_pass_registry.py` enforces that every future
 | R4 — production-grade authentication | COMPLETE — INTEGRATION_PASS | PostgreSQL-backed users and refresh-token sessions enforce explicit JWT configuration, rotation/revocation, user disablement, expiry/type rejection, five-attempt lockout, and persisted authentication audit events. |
 | R5 — durable distributed authorization and approvals | COMPLETE — INTEGRATION_PASS | PostgreSQL transactions persist evidence-bound approvals and decisions with four-eyes enforcement; separate repository engines and restarted API/worker containers proved visibility and continued validity before expiry. |
 | R6 — distributed target locking | COMPLETE — INTEGRATION_PASS | PostgreSQL session advisory locks derived solely from target IDs excluded a competing independent worker; authority was safely recoverable after release. |
-| R7–R28 | NOT STARTED | Blocked behind the preceding remediation phase. |
+| R7 — durable production ledger | COMPLETE — INTEGRATION_PASS | PostgreSQL ledger rows contain the required state/action and hash-chain evidence; restart verification passed and privileged disposable-row tampering was detected. |
+| R8–R28 | NOT STARTED | Blocked behind the preceding remediation phase. |
 
 ## Qualification rule
 
