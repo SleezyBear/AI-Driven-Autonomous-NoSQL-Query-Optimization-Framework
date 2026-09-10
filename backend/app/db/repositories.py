@@ -7,9 +7,9 @@ from datetime import datetime, timezone
 from typing import Any, Generic, TypeVar
 from uuid import UUID, uuid4
 
-from sqlalchemy import Table, delete, insert, select
+from sqlalchemy import Table, delete, insert, select, update
 from sqlalchemy.engine import RowMapping
-from sqlalchemy.ext.asyncio import AsyncEngine
+from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine
 
 from app.db import models
 
@@ -30,15 +30,19 @@ class PostgresRepository(Generic[T]):
         return self.model.__table__
 
     async def create(self, **values: Any) -> RowMapping:
+        async with self._engine.begin() as connection:
+            return await self.create_in_transaction(connection, **values)
+
+    async def create_in_transaction(self, connection: AsyncConnection, **values: Any) -> RowMapping:
+        """Create a row through a caller-owned transaction when atomic composition is required."""
         allowed = set(self.table.c.keys()) - {"id", "created_at", "updated_at"}
         unknown = set(values) - allowed
         if unknown:
             raise ValueError(f"unsupported {self.table.name} columns: {sorted(unknown)}")
         now = datetime.now(timezone.utc)
         payload = {"id": uuid4(), "created_at": now, "updated_at": now, **values}
-        async with self._engine.begin() as connection:
-            result = await connection.execute(insert(self.table).values(**payload).returning(*self.table.c))
-            return result.mappings().one()
+        result = await connection.execute(insert(self.table).values(**payload).returning(*self.table.c))
+        return result.mappings().one()
 
     async def get(self, record_id: str | UUID) -> RowMapping | None:
         async with self._engine.connect() as connection:
@@ -69,6 +73,49 @@ class TargetRepository(PostgresRepository[models.Target]):
 
 class RunRepository(PostgresRepository[models.OptimizationRun]):
     model = models.OptimizationRun
+
+    async def transition(self, run_id: str | UUID, next_state: models.RunStatus) -> RowMapping:
+        from app.state_machine.optimization import OptimizationState, validate_transition
+
+        async with self._engine.begin() as connection:
+            row = (await connection.execute(select(self.table).where(self.table.c.id == UUID(str(run_id))).with_for_update())).mappings().one_or_none()
+            if row is None:
+                raise ValueError("optimization run does not exist")
+            current = OptimizationState(str(row["status"].value if hasattr(row["status"], "value") else row["status"]))
+            desired = OptimizationState(next_state.value)
+            validate_transition(current, desired)
+            if current is OptimizationState.SNAPSHOTTING and desired is OptimizationState.DIAGNOSING and row["workload_snapshot_id"] is None:
+                raise ValueError("workload snapshot is required before diagnosis")
+            if current is OptimizationState.DIAGNOSING and desired is OptimizationState.GENERATING_CANDIDATES:
+                diagnosis = (
+                    await connection.execute(
+                        select(models.DiagnosisArtifact.__table__.c.id).where(
+                            models.DiagnosisArtifact.__table__.c.optimization_run_id == row["id"]
+                        )
+                    )
+                ).scalar_one_or_none()
+                if diagnosis is None:
+                    raise ValueError("durable diagnosis is required before candidate generation")
+            if current is OptimizationState.RANKING and desired is OptimizationState.CALIBRATING and row["primary_metric_key"] is None:
+                raise ValueError("primary metric is required before calibration")
+            result = await connection.execute(update(self.table).where(self.table.c.id == row["id"]).values(status=next_state, updated_at=datetime.now(timezone.utc)).returning(*self.table.c))
+            return result.mappings().one()
+
+    async def attach_workload_snapshot(self, run_id: str | UUID, workload_snapshot_id: str | UUID) -> RowMapping:
+        from app.state_machine.optimization import OptimizationState
+
+        async with self._engine.begin() as connection:
+            run = (await connection.execute(select(self.table).where(self.table.c.id == UUID(str(run_id))).with_for_update())).mappings().one_or_none()
+            snapshot = (await connection.execute(select(models.WorkloadSnapshot.__table__).where(models.WorkloadSnapshot.__table__.c.id == UUID(str(workload_snapshot_id))))).mappings().one_or_none()
+            if run is None or snapshot is None:
+                raise ValueError("run or workload snapshot does not exist")
+            status = str(run["status"].value if hasattr(run["status"], "value") else run["status"])
+            if status != OptimizationState.SNAPSHOTTING.value or run["workload_snapshot_id"] is not None:
+                raise ValueError("workload snapshot cannot be attached in the current lifecycle state")
+            if snapshot["target_id"] != run["target_id"]:
+                raise ValueError("workload snapshot target does not match optimization run target")
+            result = await connection.execute(update(self.table).where(self.table.c.id == run["id"]).values(workload_snapshot_id=snapshot["id"], updated_at=datetime.now(timezone.utc)).returning(*self.table.c))
+            return result.mappings().one()
 
 
 class CandidateRepository(PostgresRepository[models.Candidate]):

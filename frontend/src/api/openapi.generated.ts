@@ -5,8 +5,9 @@ export type ApiPath = "/api/v1/admissions" | "/api/v1/approvals" | "/api/v1/auth
 
 export interface ApiGroupResponse {
   group: ApiGroup;
-  status: "not_configured";
-  records: readonly never[];
+  records: readonly Record<string, unknown>[];
+  limit: number;
+  offset: number;
 }
 
 export type ApiGetResponses = {

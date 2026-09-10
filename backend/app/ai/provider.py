@@ -6,10 +6,11 @@ import hashlib
 import json
 import time
 from abc import ABC, abstractmethod
-from typing import cast
+from enum import Enum
+from typing import Any, Literal, cast
 
 import httpx
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, create_model
 
 from app.isolation.lock import BenchmarkOllamaIsolationLock, shared_measurement_lock
 from app.security.privacy import PrivacyBoundary, PrivacyMode
@@ -32,6 +33,37 @@ class Diagnosis(StructuredOutput):
     candidate_family_priorities: tuple[str, ...] = ()
     confidence: float = Field(default=0.0, ge=0.0, le=1.0)
     limitations: tuple[str, ...] = ()
+
+
+class DiagnosisFindingType(str, Enum):
+    """Closed, non-executable vocabulary for grounded workload interpretation."""
+
+    QUERY_LATENCY_HOTSPOT = "QUERY_LATENCY_HOTSPOT"
+    EXCESSIVE_DOCUMENT_SCAN = "EXCESSIVE_DOCUMENT_SCAN"
+    EXCESSIVE_KEY_SCAN = "EXCESSIVE_KEY_SCAN"
+    FILTER_INDEX_MISMATCH = "FILTER_INDEX_MISMATCH"
+    SORT_INDEX_MISMATCH = "SORT_INDEX_MISMATCH"
+    WORKLOAD_SKEW = "WORKLOAD_SKEW"
+    READ_PRESSURE = "READ_PRESSURE"
+    WRITE_PRESSURE = "WRITE_PRESSURE"
+    RESOURCE_PRESSURE = "RESOURCE_PRESSURE"
+    REPLICATION_PRESSURE = "REPLICATION_PRESSURE"
+    INSUFFICIENT_EVIDENCE = "INSUFFICIENT_EVIDENCE"
+
+
+class DiagnosisFinding(StructuredOutput):
+    finding_id: str = Field(min_length=1, max_length=128)
+    finding_type: DiagnosisFindingType
+    summary: str = Field(min_length=1, max_length=2048)
+    rationale: str = Field(min_length=1, max_length=4096)
+    query_shape_ids: tuple[str, ...] = ()
+    evidence_refs: tuple[str, ...] = Field(min_length=1)
+
+
+class DiagnosisArtifactResult(StructuredOutput):
+    """Versioned output accepted by the durable diagnosis boundary."""
+
+    findings: tuple[DiagnosisFinding, ...] = ()
 
 
 class CandidateRanking(StructuredOutput):
@@ -67,6 +99,20 @@ class AIProvider(ABC):
         """Return structured diagnostic analysis."""
 
     @abstractmethod
+    async def diagnose_artifact(self, evidence: str, *, allowed_query_shape_ids: tuple[str, ...] = (), allowed_evidence_refs: tuple[str, ...] = ()) -> DiagnosisArtifactResult:
+        """Interpret supplied immutable evidence without producing executable actions."""
+
+    @property
+    @abstractmethod
+    def provider_name(self) -> str:
+        """Stable audit label; never a credential or connection URI."""
+
+    @property
+    @abstractmethod
+    def chat_model(self) -> str:
+        """Configured advisory model recorded with durable invocation evidence."""
+
+    @abstractmethod
     async def rank_candidates(self, candidate_summaries: tuple[str, ...]) -> CandidateRanking:
         """Return a structured ranking of already-generated candidate IDs."""
 
@@ -94,6 +140,21 @@ class OllamaAIProvider(AIProvider):
     async def diagnose(self, evidence: str) -> Diagnosis:
         return await self._structured(_prompt("diagnosis", evidence), Diagnosis)
 
+    async def diagnose_artifact(self, evidence: str, *, allowed_query_shape_ids: tuple[str, ...] = (), allowed_evidence_refs: tuple[str, ...] = ()) -> DiagnosisArtifactResult:
+        # R19F passes only a typed, literal-free immutable snapshot view.  Its
+        # durable IDs are evidence references and must not be rewritten by the
+        # free-text sanitizer (which intentionally redacts UUID-shaped values).
+        result = await self._structured(_prompt("diagnosis", evidence), _grounded_diagnosis_schema(allowed_query_shape_ids, allowed_evidence_refs), pre_sanitized=True)
+        return cast(DiagnosisArtifactResult, DiagnosisArtifactResult.model_validate(result.model_dump(mode="json")))
+
+    @property
+    def provider_name(self) -> str:
+        return DEFAULT_AI_PROVIDER
+
+    @property
+    def chat_model(self) -> str:
+        return self._model
+
     async def rank_candidates(self, candidate_summaries: tuple[str, ...]) -> CandidateRanking:
         return await self._structured(_prompt("ranking", "\n".join(candidate_summaries)), CandidateRanking)
 
@@ -109,8 +170,8 @@ class OllamaAIProvider(AIProvider):
             raise ValueError("Ollama embedding response is malformed.")
         return ExperienceEmbedding(vector=tuple(embeddings[0]))
 
-    async def _structured(self, prompt: str, output_type: type[StructuredOutput]) -> StructuredOutput:
-        prompt = self._privacy_boundary.sanitize_prompt_text(prompt)
+    async def _structured(self, prompt: str, output_type: type[StructuredOutput], *, pre_sanitized: bool = False) -> StructuredOutput:
+        prompt = prompt if pre_sanitized else self._privacy_boundary.sanitize_prompt_text(prompt)
         started = time.perf_counter()
         for attempt in range(2):
             async with self._isolation_lock.ollama_request():
@@ -153,6 +214,18 @@ class OpenAICompatibleAIProvider(AIProvider):
     async def diagnose(self, evidence: str) -> Diagnosis:
         return await self._structured(_prompt("diagnosis", evidence), Diagnosis)
 
+    async def diagnose_artifact(self, evidence: str, *, allowed_query_shape_ids: tuple[str, ...] = (), allowed_evidence_refs: tuple[str, ...] = ()) -> DiagnosisArtifactResult:
+        result = await self._structured(_prompt("diagnosis", evidence), _grounded_diagnosis_schema(allowed_query_shape_ids, allowed_evidence_refs), pre_sanitized=True)
+        return cast(DiagnosisArtifactResult, DiagnosisArtifactResult.model_validate(result.model_dump(mode="json")))
+
+    @property
+    def provider_name(self) -> str:
+        return "openai_compatible"
+
+    @property
+    def chat_model(self) -> str:
+        return self._model
+
     async def rank_candidates(self, candidate_summaries: tuple[str, ...]) -> CandidateRanking:
         return await self._structured(_prompt("ranking", "\n".join(candidate_summaries)), CandidateRanking)
 
@@ -169,8 +242,8 @@ class OpenAICompatibleAIProvider(AIProvider):
             raise ValueError("OpenAI-compatible embedding response is malformed.")
         return ExperienceEmbedding(vector=tuple(data[0]["embedding"]))
 
-    async def _structured(self, prompt: str, output_type: type[StructuredOutput]) -> StructuredOutput:
-        prompt = self._privacy_boundary.sanitize_prompt_text(prompt)
+    async def _structured(self, prompt: str, output_type: type[StructuredOutput], *, pre_sanitized: bool = False) -> StructuredOutput:
+        prompt = prompt if pre_sanitized else self._privacy_boundary.sanitize_prompt_text(prompt)
         started = time.perf_counter()
         payload = {
             "model": self._model,
@@ -212,6 +285,17 @@ class FakeAIProvider(AIProvider):
     async def diagnose(self, evidence: str) -> Diagnosis:
         return Diagnosis(summary="fake diagnosis", evidence=(evidence,), bottlenecks=("synthetic",), evidence_refs=(evidence,), candidate_family_priorities=("index",), confidence=1.0)
 
+    async def diagnose_artifact(self, evidence: str, *, allowed_query_shape_ids: tuple[str, ...] = (), allowed_evidence_refs: tuple[str, ...] = ()) -> DiagnosisArtifactResult:
+        return DiagnosisArtifactResult()
+
+    @property
+    def provider_name(self) -> str:
+        return "fake"
+
+    @property
+    def chat_model(self) -> str:
+        return "fake"
+
     async def rank_candidates(self, candidate_summaries: tuple[str, ...]) -> CandidateRanking:
         selected = tuple(sorted(candidate_summaries))
         return CandidateRanking(candidate_ids=selected, rationale="deterministic fake ranking", reasons_by_candidate={candidate: "deterministic" for candidate in selected})
@@ -233,3 +317,24 @@ def _prompt(kind: str, evidence: str) -> str:
 
 def _input_hash(value: str) -> str:
     return hashlib.sha256(value.encode("utf-8")).hexdigest()
+
+
+def _grounded_diagnosis_schema(query_shape_ids: tuple[str, ...], evidence_refs: tuple[str, ...]) -> type[StructuredOutput]:
+    """Constrain model references to the immutable snapshot's actual IDs."""
+    query_type: Any = Literal.__getitem__(query_shape_ids) if query_shape_ids else str
+    evidence_type: Any = Literal.__getitem__(evidence_refs) if evidence_refs else str
+    finding = create_model(
+        "GroundedDiagnosisFinding",
+        __base__=StructuredOutput,
+        # Finding identifiers are non-authoritative labels, but they must be
+        # stable, non-placeholder, and unique within a model response.  The
+        # service enforces uniqueness after this schema-level format check.
+        finding_id=(str, Field(pattern=r"^F-[1-9][0-9]*$", max_length=128)),
+        finding_type=(DiagnosisFindingType, ...),
+        summary=(str, Field(min_length=1, max_length=2048)),
+        rationale=(str, Field(min_length=1, max_length=4096)),
+        query_shape_ids=(tuple[query_type, ...], ()),
+        evidence_refs=(tuple[evidence_type, ...], Field(min_length=1)),
+    )
+    artifact = create_model("GroundedDiagnosisArtifact", __base__=StructuredOutput, findings=(tuple[finding, ...], ()))  # type: ignore[valid-type]
+    return cast(type[StructuredOutput], artifact)

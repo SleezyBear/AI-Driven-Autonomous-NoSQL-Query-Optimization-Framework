@@ -5,6 +5,38 @@ It deliberately does not derive completion from `PHASE_STATUS.md`. The historica
 test evidence is retained there; this matrix records whether the promised system
 was actually implemented as of remediation R0.
 
+## R19B corrective completion
+
+R19B is **COMPLETE** as an integration-correctness slice: migration `0011` persists the
+full lifecycle, enforces the sole initial `OPTIMIZATION` job through a PostgreSQL
+partial unique index, and validates upgrade/downgrade safety on isolated disposable
+databases. `make r19b-acceptance` passed with 233 backend tests, Ruff, mypy, and
+`pip check`. R19 remains **INCOMPLETE** because the real worker service does not yet
+claim and dispatch `OPTIMIZATION` jobs through the optimization workflow.
+
+## R19C corrective completion
+
+R19C is **COMPLETE** as durable worker infrastructure: `make r19c-acceptance`
+passed with 19 focused worker tests, real PostgreSQL lease-expiry crash recovery,
+idle and active-job graceful shutdown, PostgreSQL readiness/outage recovery,
+Compose worker health/shutdown/restart verification, R19B regression, 250 backend
+tests, Ruff, mypy, and `pip check`. The worker uses PostgreSQL claims, leases,
+heartbeats, retry/backoff, and typed dispatch; it intentionally fails a
+non-terminal `OPTIMIZATION` job as `ORCHESTRATION_UNAVAILABLE` instead of creating
+fake lifecycle progress. Durable OptimizationRun orchestration is **NOT
+IMPLEMENTED**, so R19 remains **INCOMPLETE**.
+
+## R19D corrective boundary
+
+R19D is **BLOCKED** at **Missing real durable workload-snapshot service**.
+The component audit is recorded in `docs/R19D_COMPONENT_AUDIT.md`. The only
+implemented orchestrator prefix reloads persisted state, validates the active
+monitored target, distinct active evaluation mapping, deployment mode, and sole
+authoritative initial job, then lease-checks `CREATED → SNAPSHOTTING`. It does
+not create a fake snapshot, does not wire the worker, and returns the typed
+`WORKLOAD_SNAPSHOT_SERVICE_MISSING` blocker on resume. Three real-PostgreSQL
+tests, Ruff, and mypy passed. R19 remains **INCOMPLETE**.
+
 | Phase | Actual classification | Evidence observed | Material gap |
 | --- | --- | --- | --- |
 | 0 | PARTIAL | Host and dependency checks ran on the Intel Mac. | Historical Python 3.10 environment is superseded by R1’s Python 3.12 baseline. |

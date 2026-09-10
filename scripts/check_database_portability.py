@@ -9,7 +9,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 APP = ROOT / "backend/app"
-MONGODB_SPECIFIC = APP / "mongodb"
+# Direct driver access is permitted only in narrow MongoDB implementation
+# boundaries.  The evaluation copier is deliberately one of those boundaries:
+# it copies a physical MongoDB evaluation target and is not portable orchestration.
+MONGODB_SPECIFIC_DIRECTORIES = (APP / "mongodb", APP / "evaluation")
 
 
 def imports_pymongo(path: Path) -> bool:
@@ -25,7 +28,12 @@ def imports_pymongo(path: Path) -> bool:
 
 
 def main() -> int:
-    violations = [path.relative_to(ROOT) for path in APP.rglob("*.py") if MONGODB_SPECIFIC not in path.parents and imports_pymongo(path)]
+    violations = [
+        path.relative_to(ROOT)
+        for path in APP.rglob("*.py")
+        if not any(directory in path.parents for directory in MONGODB_SPECIFIC_DIRECTORIES)
+        and imports_pymongo(path)
+    ]
     if violations:
         raise SystemExit("pymongo is limited to MongoDB-specific modules: " + ", ".join(str(path) for path in violations))
     print("Database portability import boundary: PASS")

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import math
-from typing import Any, Iterable, cast
+from typing import Any, Iterable, TypedDict, cast
 
 import numpy as np
 
@@ -25,6 +25,17 @@ EPSILON = 1e-12
 ONE_SIDED_Z_95 = 1.645
 ZERO_REGRESSION_SENTINEL = 1_000_000_000.0
 MINIMUM_OBSERVATIONS = 3
+
+
+class _AdmissionBase(TypedDict):
+    """Fields common to every admission result return path."""
+
+    candidate_id: str
+    evaluation_run_id: str
+    profile: BenchmarkProfile
+    primary_metric_key: str
+    actual_pair_count: int
+    production_eligible: bool
 
 
 def transform_regression(baseline: float, candidate: float, direction: MetricDirection, mode: ComparisonMode) -> float:
@@ -194,7 +205,14 @@ def evaluate_candidate_admission(request: AdmissionRequest) -> AdmissionResult:
     """Apply the frozen precedence: invariant, environment, missing, noise, regression, benefit."""
     settings = PROFILES[request.profile]
     actual_pairs = min((len(metric.baseline_values) for metric in request.metrics if metric.required and metric.applicable), default=0)
-    base = dict(candidate_id=request.candidate_id, evaluation_run_id=request.evaluation_run_id, profile=request.profile, primary_metric_key=request.primary_metric_key, actual_pair_count=actual_pairs, production_eligible=settings.production_eligible)
+    base: _AdmissionBase = {
+        "candidate_id": request.candidate_id,
+        "evaluation_run_id": request.evaluation_run_id,
+        "profile": request.profile,
+        "primary_metric_key": request.primary_metric_key,
+        "actual_pair_count": actual_pairs,
+        "production_eligible": settings.production_eligible,
+    }
     if not request.safety_invariants_safe:
         return AdmissionResult(required_pair_count=0, status=AdmissionStatus.REJECTED_SAFETY_INVARIANT, reason_codes=("SAFETY_INVARIANT_FAILED",), safety_invariant_results=request.safety_invariant_results, **base)
     if not request.environment_valid:

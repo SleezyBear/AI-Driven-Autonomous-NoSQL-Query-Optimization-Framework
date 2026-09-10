@@ -59,6 +59,12 @@ _NEXT_STATES: dict[OptimizationState, frozenset[OptimizationState]] = {
 }
 
 
+def validate_transition(current: OptimizationState, next_state: OptimizationState) -> None:
+    """Validate one lifecycle edge against the single frozen transition graph."""
+    if next_state not in _NEXT_STATES[current]:
+        raise InvalidStateTransition(f"cannot transition from {current.value} to {next_state.value}")
+
+
 @dataclass
 class OptimizationStateMachine:
     """Enforce the declared lifecycle and retain an immutable-view transition history."""
@@ -73,8 +79,7 @@ class OptimizationStateMachine:
 
     def transition(self, next_state: OptimizationState) -> OptimizationState:
         """Move to an explicitly allowed next state or fail without changing state."""
-        if next_state not in _NEXT_STATES[self.state]:
-            raise InvalidStateTransition(f"cannot transition from {self.state.value} to {next_state.value}")
+        validate_transition(self.state, next_state)
         self.state = next_state
         self._history.append(next_state)
         return self.state

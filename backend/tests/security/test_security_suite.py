@@ -3,15 +3,19 @@
 from __future__ import annotations
 
 import inspect
+import os
 import subprocess
 import sys
 from dataclasses import replace
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from uuid import uuid4
 
 import pytest
 from fastapi.testclient import TestClient
 from pydantic import ValidationError
+
+os.environ.setdefault("JWT_SIGNING_KEY", "r48-test-signing-key-that-is-long-enough")
 
 from app.actions.schemas import CreateIndexAction
 from app.adapters.contracts import Namespace
@@ -19,8 +23,10 @@ from app.adapters.fake import FakeDatabaseAdapter
 from app.admission.models import AdmissionResult, AdmissionStatus, BenchmarkProfile
 from app.ai.provider import AIProvider, OllamaAIProvider
 from app.approvals.flow import ApprovalFlow, ApprovalRequired, ApprovalStatus
-from app.auth.routes import issue_test_token
+from app.auth.routes import jwt_service
 from app.auth.security import Principal, Role
+from app.db import models
+from app.db.runtime import create_control_plane_engine
 from app.ledger.chain import AppendOnlyLedger
 from app.main import app
 from app.production.executor import DeploymentRequest, ProductionExecutor
@@ -87,7 +93,8 @@ async def test_cross_target_approval_reuse_and_stale_evidence_fail_before_mutati
     assert await adapter.list_indexes(Namespace("orders")) == ()
 
 
-def test_expired_approval_and_self_approval_fail() -> None:
+@pytest.mark.asyncio
+async def test_expired_approval_and_self_approval_fail() -> None:
     current = datetime(2026, 8, 21, tzinfo=timezone.utc)
     flow = ApprovalFlow(approval_ttl=timedelta(seconds=1), now=lambda: current)
     approval = flow.request("candidate-1", "evidence-a", "target-1")
@@ -98,12 +105,34 @@ def test_expired_approval_and_self_approval_fail() -> None:
         flow.require_current_approval("candidate-1", "evidence-a", "target-1")
     assert flow.get(approval.approval_id).status is ApprovalStatus.EXPIRED
 
-    response = client.post(
-        "/approvals/request-1",
-        json={"requested_by_user_id": "approver-1"},
-        headers={"Authorization": f"Bearer {issue_test_token(Principal('approver-1', Role.APPROVER))}"},
-    )
-    assert response.status_code == 403
+    user_id = uuid4()
+    engine = create_control_plane_engine()
+    try:
+        now = datetime.now(timezone.utc)
+        async with engine.begin() as connection:
+            await connection.execute(
+                models.User.__table__.insert().values(
+                    id=user_id,
+                    created_at=now,
+                    updated_at=now,
+                    email=f"r48-{user_id.hex}@example.test",
+                    password_hash="hash",
+                    role=Role.APPROVER.value,
+                    status="ACTIVE",
+                    failed_login_count=0,
+                )
+            )
+        with TestClient(app) as authenticated_client:
+            response = authenticated_client.post(
+                "/approvals/request-1",
+                json={"requested_by_user_id": str(user_id)},
+                headers={"Authorization": f"Bearer {jwt_service().issue(Principal(str(user_id), Role.APPROVER))}"},
+            )
+        assert response.status_code == 403
+    finally:
+        async with engine.begin() as connection:
+            await connection.execute(models.User.__table__.delete().where(models.User.id == user_id))
+        await engine.dispose()
 
 
 def test_ledger_tampering_and_credential_logging_are_detected_or_redacted() -> None:

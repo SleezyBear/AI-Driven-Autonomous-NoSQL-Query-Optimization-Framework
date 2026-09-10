@@ -35,7 +35,7 @@ class FakeTelemetryDatabase:
             raise RuntimeError(command_name)
         return self.responses.get(command_name, {})
 
-    def aggregate(self, pipeline: list[dict[str, Any]], **kwargs: Any) -> EmptyCursor:
+    async def aggregate(self, pipeline: list[dict[str, Any]], **kwargs: Any) -> EmptyCursor:
         return EmptyCursor()
 
 

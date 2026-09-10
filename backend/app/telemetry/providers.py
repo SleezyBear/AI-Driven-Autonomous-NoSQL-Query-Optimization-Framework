@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import inspect
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
@@ -37,7 +38,7 @@ class TelemetryObservation:
 
 class MongoTelemetryDatabase(Protocol):
     async def command(self, command: dict[str, Any]) -> dict[str, Any]: ...
-    def aggregate(self, pipeline: list[dict[str, Any]], **kwargs: Any) -> Any: ...
+    async def aggregate(self, pipeline: list[dict[str, Any]], **kwargs: Any) -> Any: ...
 
 
 class TelemetryProvider(ABC):
@@ -64,7 +65,7 @@ class QueryStatsTelemetryProvider(TelemetryProvider):
         return True
 
     async def collect(self) -> tuple[TelemetryObservation, ...]:
-        cursor = self._database.aggregate([{"$queryStats": {}}], maxTimeMS=1_000)
+        cursor = await _aggregate(self._database, [{"$queryStats": {}}], maxTimeMS=1_000)
         documents = await cursor.to_list(length=100)
         return tuple(observation for document in documents if (observation := _from_query_stats(document)) is not None)
 
@@ -99,7 +100,7 @@ class ProfilerTelemetryProvider(TelemetryProvider):
     async def collect(self) -> tuple[TelemetryObservation, ...]:
         if not self._enabled:
             return ()
-        cursor = self._database.aggregate([{"$match": {"ns": {"$exists": True}}}, {"$limit": 100}], collection="system.profile")
+        cursor = await _aggregate(self._database, [{"$match": {"ns": {"$exists": True}}}, {"$limit": 100}], collection="system.profile")
         documents = await cursor.to_list(length=100)
         return tuple(observation for document in documents if (observation := _from_command_document(self.source, document)) is not None)
 
@@ -193,3 +194,9 @@ def _namespace(value: Any) -> tuple[str, str] | None:
 
 def _operation_from_command(command: Mapping[str, Any]) -> str:
     return next((str(name) for name in ("find", "aggregate", "update", "delete", "insert") if name in command), "unknown")
+
+
+async def _aggregate(database: MongoTelemetryDatabase, pipeline: list[dict[str, Any]], **kwargs: Any) -> Any:
+    """Accept the project's async PyMongo API and existing cursor-style doubles."""
+    result = database.aggregate(pipeline, **kwargs)
+    return await result if inspect.isawaitable(result) else result

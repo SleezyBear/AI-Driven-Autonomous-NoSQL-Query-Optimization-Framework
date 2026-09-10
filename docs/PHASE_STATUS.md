@@ -72,6 +72,35 @@
 
 Phase progression is strictly one phase at a time: implement, run its test and prior tests, fix regressions, then update this document.
 
+## R19B corrective record
+
+- Result: COMPLETE — INTEGRATION_PASS. R19 itself remains INCOMPLETE.
+- Verification: `make r19b-acceptance`.
+- Result details: 7 focused real-PostgreSQL lifecycle and durable-worker tests passed; all isolated migration paths passed (fresh migration chain, 0010→0011 preservation, legacy `RUNNING` refusal, safe downgrade, and unsafe active-state refusal); the full backend suite passed 233 tests; Ruff, mypy, and `pip check` passed.
+- Safety: the existing development database was upgraded in place without resetting it; no development data or Docker volumes were deleted. The migration harness creates and removes only unique disposable databases.
+
+## R19C corrective record
+
+- Result: COMPLETE — INTEGRATION_PASS. R19 itself remains INCOMPLETE.
+- Verification: `make r19c-acceptance`.
+- Result details: 19 focused worker tests passed, including real PostgreSQL restart/lease-expiry recovery, idle polling and shutdown, active-job shutdown and recovery, readiness, temporary PostgreSQL-outage recovery, secret-safe outage logging, and the 100-job/two-worker regression. Compose verification confirmed the real `app.worker.service` command, healthcheck, no public worker port, `unless-stopped` restart policy, 45-second stop grace period, graceful shutdown, and a new worker identity after restart. R19B acceptance passed; full backend regression passed 250 tests; Ruff, mypy (89 source files), and `pip check` passed.
+- Safety: no development database, development data, or Docker volume was deleted or reset.
+- Scope boundary: durable worker infrastructure is real. Durable OptimizationRun orchestration is NOT IMPLEMENTED; non-terminal optimization jobs fail closed with `ORCHESTRATION_UNAVAILABLE`. The next blocker is: Missing real durable OptimizationRun orchestration service.
+
+## R19D corrective record
+
+- Result: BLOCKED — COMPONENT_AUDIT. R19 remains INCOMPLETE.
+- Verification: `backend/tests/runs/test_orchestrator_created.py` — 3 real-PostgreSQL tests passed; Ruff and mypy passed.
+- Implemented boundary: `OptimizationRunOrchestrator` reloads the authoritative run, validates persisted target/evaluation mapping/deployment-mode/initial-job facts, lease-checks, and transitions only `CREATED → SNAPSHOTTING`. Terminal runs are not restarted.
+- Stop condition: `SNAPSHOTTING` returns `WORKLOAD_SNAPSHOT_SERVICE_MISSING`; the worker remains unwired and no snapshot, diagnosis, candidate, ranking, evaluation, admission, approval, production, monitoring, or rollback progress is fabricated.
+- Next corrective blocker: Missing real durable workload-snapshot service that builds, persists, attaches, and verifies a target-bound snapshot from telemetry/query-shape evidence.
+- Known next blocker: `backend/app/worker/service.py` does not yet claim and dispatch `OPTIMIZATION` jobs through the real optimization workflow.
+
+## Worker integration-test isolation policy
+
+- Any integration test that relies on PostgreSQL queue state, leases, retries, restart semantics, or committed durable run/job state MUST use a per-test disposable migrated PostgreSQL database.
+- The development control-plane database MUST NOT be used as a worker-integration queue. The disposable database harness may create and remove only its uniquely generated test databases; development data and Docker volumes are never reset or deleted for test isolation.
+
 ## Phase 0 record
 
 - Result: PASS

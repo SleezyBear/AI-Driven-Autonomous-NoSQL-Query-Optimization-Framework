@@ -19,9 +19,23 @@ class Base(DeclarativeBase):
 
 
 class RunStatus(str, Enum):
-    PENDING = "PENDING"
-    RUNNING = "RUNNING"
+    CREATED = "CREATED"
+    SNAPSHOTTING = "SNAPSHOTTING"
+    DIAGNOSING = "DIAGNOSING"
+    GENERATING_CANDIDATES = "GENERATING_CANDIDATES"
+    RANKING = "RANKING"
+    CALIBRATING = "CALIBRATING"
+    EVALUATING = "EVALUATING"
+    ADMISSION = "ADMISSION"
+    ADMITTED = "ADMITTED"
+    APPROVAL_PENDING = "APPROVAL_PENDING"
+    APPROVED = "APPROVED"
+    DEPLOYING = "DEPLOYING"
+    DEPLOYED = "DEPLOYED"
+    MONITORING = "MONITORING"
     COMPLETED = "COMPLETED"
+    ROLLED_BACK = "ROLLED_BACK"
+    ROLLBACK_BLOCKED = "ROLLBACK_BLOCKED"
     FAILED = "FAILED"
 
 
@@ -136,14 +150,111 @@ class WorkloadSnapshot(TimestampedUUID):
     telemetry_window_id: Mapped[UUID] = mapped_column(ForeignKey("telemetry_windows.id", ondelete="RESTRICT"))
     snapshot: Mapped[dict[str, Any]] = mapped_column(JSON)
     fingerprint: Mapped[str] = mapped_column(String(128), unique=True)
+    # Nullable for pre-R19E historical rows.  R19E-created rows always set it.
+    source_run_id: Mapped[UUID | None] = mapped_column(ForeignKey("optimization_runs.id", ondelete="RESTRICT"), unique=True)
+    observed_from: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    observed_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    anchor_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    completeness: Mapped[dict[str, Any] | None] = mapped_column(JSON)
+
+
+class WorkloadSnapshotSourceWindow(TimestampedUUID):
+    __tablename__ = "workload_snapshot_source_windows"
+    workload_snapshot_id: Mapped[UUID] = mapped_column(ForeignKey("workload_snapshots.id", ondelete="RESTRICT"))
+    telemetry_window_id: Mapped[UUID] = mapped_column(ForeignKey("telemetry_windows.id", ondelete="RESTRICT"))
+    __table_args__ = (UniqueConstraint("workload_snapshot_id", "telemetry_window_id", name="uq_snapshot_source_window"),)
+
+
+class WorkloadSnapshotQueryShape(TimestampedUUID):
+    __tablename__ = "workload_snapshot_query_shapes"
+    workload_snapshot_id: Mapped[UUID] = mapped_column(ForeignKey("workload_snapshots.id", ondelete="RESTRICT"), index=True)
+    query_shape_id: Mapped[UUID] = mapped_column(ForeignKey("query_shapes.id", ondelete="RESTRICT"))
+    query_shape_hash: Mapped[str] = mapped_column(String(128))
+    operation: Mapped[str] = mapped_column(String(32))
+    namespace: Mapped[str] = mapped_column(String(256))
+    observed_operation_count: Mapped[int] = mapped_column(Integer)
+    successful_operation_count: Mapped[int | None] = mapped_column(Integer)
+    failure_count: Mapped[int | None] = mapped_column(Integer)
+    timeout_count: Mapped[int | None] = mapped_column(Integer)
+    aggregate_execution_time_ms: Mapped[float | None] = mapped_column(Numeric)
+    workload_operation_share: Mapped[float] = mapped_column(Numeric)
+    execution_time_share: Mapped[float | None] = mapped_column(Numeric)
+    manually_critical: Mapped[bool] = mapped_column(Boolean, default=False)
+    protected_manual_critical: Mapped[bool] = mapped_column(Boolean, default=False)
+    protected_operation_share: Mapped[bool] = mapped_column(Boolean, default=False)
+    protected_execution_time_share: Mapped[bool] = mapped_column(Boolean, default=False)
+    base_protected: Mapped[bool] = mapped_column(Boolean, default=False)
+    provider: Mapped[str] = mapped_column(String(64))
+    __table_args__ = (UniqueConstraint("workload_snapshot_id", "query_shape_id", name="uq_snapshot_query_shape"),)
+
+
+class WorkloadSnapshotMetric(TimestampedUUID):
+    __tablename__ = "workload_snapshot_metrics"
+    workload_snapshot_id: Mapped[UUID] = mapped_column(ForeignKey("workload_snapshots.id", ondelete="RESTRICT"), index=True)
+    source_metric_observation_id: Mapped[UUID] = mapped_column(ForeignKey("metric_observations.id", ondelete="RESTRICT"), unique=True)
+    scope: Mapped[str] = mapped_column(String(32))
+    metric_name: Mapped[str] = mapped_column(String(64))
+    metric_value: Mapped[float] = mapped_column(Numeric)
+
+
+class AIInvocation(TimestampedUUID):
+    """Append-only, privacy-safe audit history for advisory model attempts."""
+
+    __tablename__ = "ai_invocations"
+    optimization_run_id: Mapped[UUID] = mapped_column(ForeignKey("optimization_runs.id", ondelete="RESTRICT"), index=True)
+    stage: Mapped[str] = mapped_column(String(32))
+    provider: Mapped[str] = mapped_column(String(64))
+    model: Mapped[str] = mapped_column(String(256))
+    prompt_version: Mapped[str] = mapped_column(String(64))
+    schema_version: Mapped[str] = mapped_column(String(64))
+    workload_snapshot_id: Mapped[UUID] = mapped_column(ForeignKey("workload_snapshots.id", ondelete="RESTRICT"))
+    input_hash: Mapped[str] = mapped_column(String(128))
+    sanitized_input: Mapped[dict[str, Any]] = mapped_column(JSON)
+    output_hash: Mapped[str | None] = mapped_column(String(128))
+    validated_output: Mapped[dict[str, Any] | None] = mapped_column(JSON)
+    latency_ms: Mapped[float | None] = mapped_column(Numeric)
+    status: Mapped[str] = mapped_column(String(32))
+    safe_error_code: Mapped[str | None] = mapped_column(String(128))
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    attempt_number: Mapped[int] = mapped_column(Integer)
+
+
+class DiagnosisArtifact(TimestampedUUID):
+    """One immutable, authoritative grounded diagnosis for an optimization run."""
+
+    __tablename__ = "diagnosis_artifacts"
+    optimization_run_id: Mapped[UUID] = mapped_column(ForeignKey("optimization_runs.id", ondelete="RESTRICT"), unique=True)
+    workload_snapshot_id: Mapped[UUID] = mapped_column(ForeignKey("workload_snapshots.id", ondelete="RESTRICT"))
+    target_id: Mapped[UUID] = mapped_column(ForeignKey("targets.id", ondelete="RESTRICT"))
+    ai_invocation_id: Mapped[UUID] = mapped_column(ForeignKey("ai_invocations.id", ondelete="RESTRICT"))
+    schema_version: Mapped[str] = mapped_column(String(64))
+    source_snapshot_fingerprint: Mapped[str] = mapped_column(String(128))
+    deterministic_evidence_hash: Mapped[str] = mapped_column(String(128))
+    artifact_fingerprint: Mapped[str] = mapped_column(String(128), unique=True)
+
+
+class DiagnosisFinding(TimestampedUUID):
+    """Typed, immutable interpretation grounded in snapshot evidence identifiers."""
+
+    __tablename__ = "diagnosis_findings"
+    diagnosis_artifact_id: Mapped[UUID] = mapped_column(ForeignKey("diagnosis_artifacts.id", ondelete="RESTRICT"), index=True)
+    finding_id: Mapped[str] = mapped_column(String(128))
+    finding_type: Mapped[str] = mapped_column(String(64))
+    summary: Mapped[str] = mapped_column(String(2048))
+    rationale: Mapped[str] = mapped_column(String(4096))
+    query_shape_ids: Mapped[list[str]] = mapped_column(JSON)
+    evidence_refs: Mapped[list[str]] = mapped_column(JSON)
+    __table_args__ = (UniqueConstraint("diagnosis_artifact_id", "finding_id", name="uq_diagnosis_finding_identity"),)
 
 
 class OptimizationRun(TimestampedUUID):
     __tablename__ = "optimization_runs"
     target_id: Mapped[UUID] = mapped_column(ForeignKey("targets.id", ondelete="RESTRICT"), index=True)
-    workload_snapshot_id: Mapped[UUID] = mapped_column(ForeignKey("workload_snapshots.id", ondelete="RESTRICT"))
-    status: Mapped[RunStatus] = mapped_column(SAEnum(RunStatus, name="run_status"), default=RunStatus.PENDING)
+    workload_snapshot_id: Mapped[UUID | None] = mapped_column(ForeignKey("workload_snapshots.id", ondelete="RESTRICT"))
+    status: Mapped[RunStatus] = mapped_column(SAEnum(RunStatus, name="run_status"), default=RunStatus.CREATED)
     requested_by_user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    deployment_mode: Mapped[str] = mapped_column(String(32))
+    primary_metric_key: Mapped[str | None] = mapped_column(String(256))
 
 
 class Candidate(TimestampedUUID):

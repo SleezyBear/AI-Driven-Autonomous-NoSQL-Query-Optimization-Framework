@@ -113,6 +113,8 @@ services:
       DATABASE_URL: postgresql+asyncpg://control_plane:control_plane_dev_only@postgres:5432/control_plane
       JWT_SIGNING_KEY: ${JWT_SIGNING_KEY:?Set JWT_SIGNING_KEY in your environment or .env file}
     profiles: ["light", "replica-test", "paper"]
+    restart: unless-stopped
+    stop_grace_period: 45s
     depends_on:
       postgres:
         condition: service_healthy
@@ -120,7 +122,7 @@ services:
       - source: control_plane_master_key
         target: control_plane_master_key
     healthcheck:
-      test: ["CMD-SHELL", "python -c 'import sys; sys.exit(0)' "]
+      test: ["CMD-SHELL", "python -m app.worker.service --healthcheck"]
       interval: 5s
       timeout: 5s
       retries: 20

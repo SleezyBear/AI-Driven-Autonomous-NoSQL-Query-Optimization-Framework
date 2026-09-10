@@ -19,8 +19,10 @@ client = TestClient(app)
 def test_every_required_api_group_has_a_truthful_read_only_endpoint(group: ApiGroup) -> None:
     response = client.get(f"/api/v1/{group.value}")
 
-    assert response.status_code == 200
-    assert response.json() == {"group": group.value, "status": "not_configured", "records": []}
+    # R4 made every control-plane read endpoint authenticated.  A 401 proves
+    # the route exists while preserving the production authorization boundary.
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Authentication required."
 
 
 def test_openapi_documents_every_required_group_and_generated_types_are_current() -> None:

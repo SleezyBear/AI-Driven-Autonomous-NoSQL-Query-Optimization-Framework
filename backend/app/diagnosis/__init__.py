@@ -1,0 +1,2 @@
+"""Durable grounded diagnosis boundary."""
+

@@ -1,7 +1,7 @@
 PYTHON := ./nosql/bin/python
 PIP := ./nosql/bin/python -m pip
 
-.PHONY: preflight wheel-test phase0-acceptance phase-r0-acceptance phase-r1-acceptance phase-r2-acceptance phase-r3-acceptance phase-r4-acceptance phase-r5-acceptance phase-r6-acceptance phase-r7-acceptance phase-r8-acceptance phase-r9-acceptance phase-r10-acceptance phase-r11-acceptance phase-r12-acceptance phase-r13-acceptance phase-r14-acceptance phase-r15-acceptance phase-r16-acceptance phase-r17-acceptance phase-r18-acceptance phase15-acceptance pip-check test dev replica-test-env paper-env acceptance nosqlbench-smoke safetybench phase43-acceptance phase44-acceptance phase45-acceptance phase46-acceptance phase47-acceptance phase48-acceptance phase49-acceptance phase50-acceptance phase51-acceptance phase52-acceptance phase53-acceptance phase54-acceptance phase55-acceptance demo-reset demo-start demo-seed demo-workload
+.PHONY: preflight wheel-test phase0-acceptance phase-r0-acceptance phase-r1-acceptance phase-r2-acceptance phase-r3-acceptance phase-r4-acceptance phase-r5-acceptance phase-r6-acceptance phase-r7-acceptance phase-r8-acceptance phase-r9-acceptance phase-r10-acceptance phase-r11-acceptance phase-r12-acceptance phase-r13-acceptance phase-r14-acceptance phase-r15-acceptance phase-r16-acceptance phase-r17-acceptance phase-r18-acceptance r19b-acceptance r19c-docker-worker r19c-acceptance r19d-acceptance r19e-acceptance r19f-acceptance phase15-acceptance pip-check test dev replica-test-env paper-env acceptance nosqlbench-smoke safetybench phase43-acceptance phase44-acceptance phase45-acceptance phase46-acceptance phase47-acceptance phase48-acceptance phase49-acceptance phase50-acceptance phase51-acceptance phase52-acceptance phase53-acceptance phase54-acceptance phase55-acceptance demo-reset demo-start demo-seed demo-workload
 
 preflight:
 	$(PIP) check
@@ -111,6 +111,67 @@ phase-r18-acceptance:
 	docker compose --profile light up -d --wait postgres
 	$(PYTHON) -m alembic -c backend/alembic.ini upgrade head
 	$(PYTHON) -m pytest backend/tests/monitoring
+
+r19b-acceptance:
+	docker compose --profile light up -d --wait postgres
+	$(PYTHON) -m alembic -c backend/alembic.ini upgrade head
+	$(PYTHON) -m pytest backend/tests/runs/test_lifecycle_persistence.py backend/tests/worker/test_durable.py
+	$(PYTHON) scripts/check_r19b_migrations.py
+	$(PYTHON) -m pytest backend/tests
+	$(PYTHON) -m ruff check backend
+	MYPYPATH=backend $(PYTHON) -m mypy backend/app
+	$(PIP) check
+
+r19c-docker-worker:
+	$(PYTHON) scripts/check_r19c_docker_worker.py
+
+r19c-acceptance:
+	docker compose --profile light up -d --wait postgres
+	docker compose --profile light stop worker
+	$(PYTHON) -m alembic -c backend/alembic.ini upgrade head
+	$(PYTHON) -m pytest backend/tests/worker
+	$(MAKE) r19c-docker-worker
+	docker compose --profile light stop worker
+	$(MAKE) r19b-acceptance
+	$(PYTHON) -m pytest backend/tests
+	$(PYTHON) -m ruff check backend
+	MYPYPATH=backend $(PYTHON) -m mypy backend/app
+	$(PIP) check
+
+r19d-acceptance:
+	docker compose --profile light up -d --wait postgres
+	$(PYTHON) -m alembic -c backend/alembic.ini upgrade head
+	$(PYTHON) -m pytest backend/tests/runs/test_orchestrator_created.py
+	$(MAKE) r19c-acceptance
+	$(MAKE) r19b-acceptance
+	$(PYTHON) -m pytest backend/tests
+	$(PYTHON) -m ruff check backend
+	MYPYPATH=backend $(PYTHON) -m mypy backend/app
+	$(PIP) check
+
+r19e-acceptance:
+	docker compose --profile light up -d --wait postgres mongo-monitored
+	$(PYTHON) -m alembic -c backend/alembic.ini upgrade head
+	$(PYTHON) -m pytest backend/tests/workloads/test_durable_snapshot.py backend/tests/telemetry/test_provider_selection.py backend/tests/runs/test_orchestrator_created.py
+	$(MAKE) r19d-acceptance
+	$(MAKE) r19c-acceptance
+	$(MAKE) r19b-acceptance
+	$(PYTHON) -m pytest backend/tests
+	$(PYTHON) -m ruff check backend
+	MYPYPATH=backend $(PYTHON) -m mypy backend/app
+	$(PIP) check
+
+r19f-acceptance:
+	docker compose --profile light up -d --wait postgres mongo-monitored
+	$(PYTHON) -m alembic -c backend/alembic.ini upgrade head
+	R19F_REAL_OLLAMA=1 $(PYTHON) -m pytest backend/tests/diagnosis backend/tests/workloads/test_durable_snapshot.py backend/tests/runs/test_orchestrator_created.py
+	$(MAKE) r19e-acceptance
+	$(MAKE) r19c-acceptance
+	$(MAKE) r19b-acceptance
+	$(PYTHON) -m pytest backend/tests
+	$(PYTHON) -m ruff check backend
+	MYPYPATH=backend $(PYTHON) -m mypy backend/app
+	$(PIP) check
 
 phase15-acceptance:
 	$(PYTHON) scripts/phase15_acceptance.py
