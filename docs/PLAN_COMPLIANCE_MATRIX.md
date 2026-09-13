@@ -28,14 +28,27 @@ IMPLEMENTED**, so R19 remains **INCOMPLETE**.
 
 ## R19D corrective boundary
 
-R19D is **BLOCKED** at **Missing real durable workload-snapshot service**.
-The component audit is recorded in `docs/R19D_COMPONENT_AUDIT.md`. The only
-implemented orchestrator prefix reloads persisted state, validates the active
-monitored target, distinct active evaluation mapping, deployment mode, and sole
-authoritative initial job, then lease-checks `CREATED → SNAPSHOTTING`. It does
-not create a fake snapshot, does not wire the worker, and returns the typed
-`WORKLOAD_SNAPSHOT_SERVICE_MISSING` blocker on resume. Three real-PostgreSQL
-tests, Ruff, and mypy passed. R19 remains **INCOMPLETE**.
+R19D is **INCOMPLETE** and remains fail-closed at its persisted orchestration
+boundary.
+The component audit is recorded in `docs/R19D_COMPONENT_AUDIT.md`. Its
+orchestrator prefix reloads persisted state, validates the active monitored
+target, distinct active evaluation mapping, deployment mode, and sole
+authoritative initial job, then lease-checks `CREATED → SNAPSHOTTING` and
+returns the typed `WORKLOAD_SNAPSHOT_SERVICE_MISSING` blocker. Later R19E–K
+components are real but intentionally remain unwired from this worker path.
+R19 remains **INCOMPLETE**.
+
+## R19E, R19F, and R19G–K corrective completion
+
+R19E, R19F, and R19G–K are **COMPLETE** as integration-correctness slices.
+Their acceptance chain verified durable literal-free workload evidence, grounded
+diagnosis, deterministic immutable candidates, real Ollama ranking over opaque
+handles, separate monitored/evaluation MongoDB trial persistence, frozen
+statistical admission, and recovery/idempotency. The ordered real-AI gate passed
+3 tests and `make r19gk-acceptance` completed with exit code 0; final backend
+regression was 269 passed and 3 skipped, with Ruff, mypy (98 source files), and
+`pip check` green. R19 remains **INCOMPLETE**: worker orchestration and the
+excluded approval, deployment, monitoring, and rollback stages are not complete.
 
 | Phase | Actual classification | Evidence observed | Material gap |
 | --- | --- | --- | --- |

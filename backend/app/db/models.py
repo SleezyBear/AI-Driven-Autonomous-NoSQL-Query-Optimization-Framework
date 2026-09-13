@@ -39,6 +39,16 @@ class RunStatus(str, Enum):
     FAILED = "FAILED"
 
 
+class RunCompletionReason(str, Enum):
+    """Machine-readable terminal reason for a successfully completed run."""
+
+    NO_CANDIDATES = "NO_CANDIDATES"
+    NO_ADMITTED_CANDIDATE = "NO_ADMITTED_CANDIDATE"
+    DEPLOYMENT_SUCCEEDED = "DEPLOYMENT_SUCCEEDED"
+    APPROVAL_REJECTED = "APPROVAL_REJECTED"
+    LEGACY_COMPLETED = "LEGACY_COMPLETED"
+
+
 class CandidateStatus(str, Enum):
     PROPOSED = "PROPOSED"
     EVALUATING = "EVALUATING"
@@ -255,6 +265,9 @@ class OptimizationRun(TimestampedUUID):
     requested_by_user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
     deployment_mode: Mapped[str] = mapped_column(String(32))
     primary_metric_key: Mapped[str | None] = mapped_column(String(256))
+    completion_reason: Mapped[RunCompletionReason | None] = mapped_column(
+        SAEnum(RunCompletionReason, name="run_completion_reason")
+    )
 
 
 class Candidate(TimestampedUUID):
@@ -263,6 +276,15 @@ class Candidate(TimestampedUUID):
     query_shape_id: Mapped[UUID] = mapped_column(ForeignKey("query_shapes.id", ondelete="RESTRICT"))
     status: Mapped[CandidateStatus] = mapped_column(SAEnum(CandidateStatus, name="candidate_status"), default=CandidateStatus.PROPOSED)
     candidate_hash: Mapped[str] = mapped_column(String(128), unique=True)
+    source_snapshot_id: Mapped[UUID | None] = mapped_column(ForeignKey("workload_snapshots.id", ondelete="RESTRICT"))
+    source_diagnosis_id: Mapped[UUID | None] = mapped_column(ForeignKey("diagnosis_artifacts.id", ondelete="RESTRICT"))
+    deterministic_fingerprint: Mapped[str | None] = mapped_column(String(128))
+    generation_rule_id: Mapped[str | None] = mapped_column(String(128))
+    generation_rule_version: Mapped[str | None] = mapped_column(String(64))
+    affected_query_shape_ids: Mapped[list[str] | None] = mapped_column(JSON)
+    evidence_refs: Mapped[list[str] | None] = mapped_column(JSON)
+    policy_classification: Mapped[str | None] = mapped_column(String(64))
+    __table_args__ = (UniqueConstraint("optimization_run_id", "deterministic_fingerprint", name="uq_candidate_run_fingerprint"),)
 
 
 class CandidateAction(TimestampedUUID):
@@ -302,6 +324,54 @@ class AdmissionDecision(TimestampedUUID):
     candidate_id: Mapped[UUID] = mapped_column(ForeignKey("candidates.id", ondelete="RESTRICT"), unique=True)
     verdict: Mapped[str] = mapped_column(String(32))
     evidence_hash: Mapped[str] = mapped_column(String(128))
+
+
+class CandidateGenerationArtifact(TimestampedUUID):
+    """Authoritative immutable output of deterministic candidate generation."""
+
+    __tablename__ = "candidate_generation_artifacts"
+    optimization_run_id: Mapped[UUID] = mapped_column(ForeignKey("optimization_runs.id", ondelete="RESTRICT"), unique=True)
+    workload_snapshot_id: Mapped[UUID] = mapped_column(ForeignKey("workload_snapshots.id", ondelete="RESTRICT"))
+    diagnosis_artifact_id: Mapped[UUID] = mapped_column(ForeignKey("diagnosis_artifacts.id", ondelete="RESTRICT"))
+    generator_version: Mapped[str] = mapped_column(String(64))
+    candidate_count: Mapped[int] = mapped_column(Integer)
+    ordered_candidate_fingerprints: Mapped[list[str]] = mapped_column(JSON)
+    artifact_fingerprint: Mapped[str] = mapped_column(String(128), unique=True)
+    completed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
+class CandidateRankingArtifact(TimestampedUUID):
+    """Validated immutable advisory ordering of an already-fixed candidate set."""
+
+    __tablename__ = "candidate_ranking_artifacts"
+    optimization_run_id: Mapped[UUID] = mapped_column(ForeignKey("optimization_runs.id", ondelete="RESTRICT"), unique=True)
+    generation_artifact_id: Mapped[UUID] = mapped_column(ForeignKey("candidate_generation_artifacts.id", ondelete="RESTRICT"))
+    ai_invocation_id: Mapped[UUID] = mapped_column(ForeignKey("ai_invocations.id", ondelete="RESTRICT"))
+    ordered_candidate_ids: Mapped[list[str]] = mapped_column(JSON)
+    artifact_fingerprint: Mapped[str] = mapped_column(String(128), unique=True)
+
+
+class EvaluationPlan(TimestampedUUID):
+    """Frozen selection and profile before any controlled benchmark measurement."""
+
+    __tablename__ = "evaluation_plans"
+    optimization_run_id: Mapped[UUID] = mapped_column(ForeignKey("optimization_runs.id", ondelete="RESTRICT"), unique=True)
+    ranking_artifact_id: Mapped[UUID] = mapped_column(ForeignKey("candidate_ranking_artifacts.id", ondelete="RESTRICT"))
+    profile: Mapped[str] = mapped_column(String(32))
+    selected_candidate_ids: Mapped[list[str]] = mapped_column(JSON)
+    calibration: Mapped[dict[str, Any]] = mapped_column(JSON)
+    artifact_fingerprint: Mapped[str] = mapped_column(String(128), unique=True)
+
+
+class AdmissionArtifact(TimestampedUUID):
+    """Immutable run-level result selecting only independently admitted candidates."""
+
+    __tablename__ = "admission_artifacts"
+    optimization_run_id: Mapped[UUID] = mapped_column(ForeignKey("optimization_runs.id", ondelete="RESTRICT"), unique=True)
+    evaluation_plan_id: Mapped[UUID] = mapped_column(ForeignKey("evaluation_plans.id", ondelete="RESTRICT"))
+    selected_candidate_id: Mapped[UUID | None] = mapped_column(ForeignKey("candidates.id", ondelete="RESTRICT"))
+    admitted_candidate_ids: Mapped[list[str]] = mapped_column(JSON)
+    artifact_fingerprint: Mapped[str] = mapped_column(String(128), unique=True)
 
 
 class SafetyResult(TimestampedUUID):

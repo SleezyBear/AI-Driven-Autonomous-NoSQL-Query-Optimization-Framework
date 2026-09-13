@@ -1,7 +1,7 @@
 PYTHON := ./nosql/bin/python
 PIP := ./nosql/bin/python -m pip
 
-.PHONY: preflight wheel-test phase0-acceptance phase-r0-acceptance phase-r1-acceptance phase-r2-acceptance phase-r3-acceptance phase-r4-acceptance phase-r5-acceptance phase-r6-acceptance phase-r7-acceptance phase-r8-acceptance phase-r9-acceptance phase-r10-acceptance phase-r11-acceptance phase-r12-acceptance phase-r13-acceptance phase-r14-acceptance phase-r15-acceptance phase-r16-acceptance phase-r17-acceptance phase-r18-acceptance r19b-acceptance r19c-docker-worker r19c-acceptance r19d-acceptance r19e-acceptance r19f-acceptance phase15-acceptance pip-check test dev replica-test-env paper-env acceptance nosqlbench-smoke safetybench phase43-acceptance phase44-acceptance phase45-acceptance phase46-acceptance phase47-acceptance phase48-acceptance phase49-acceptance phase50-acceptance phase51-acceptance phase52-acceptance phase53-acceptance phase54-acceptance phase55-acceptance demo-reset demo-start demo-seed demo-workload
+.PHONY: preflight wheel-test phase0-acceptance phase-r0-acceptance phase-r1-acceptance phase-r2-acceptance phase-r3-acceptance phase-r4-acceptance phase-r5-acceptance phase-r6-acceptance phase-r7-acceptance phase-r8-acceptance phase-r9-acceptance phase-r10-acceptance phase-r11-acceptance phase-r12-acceptance phase-r13-acceptance phase-r14-acceptance phase-r15-acceptance phase-r16-acceptance phase-r17-acceptance phase-r18-acceptance r19b-acceptance r19c-docker-worker r19c-acceptance r19d-acceptance r19e-acceptance r19f-acceptance r19gk-real-ai r19gk-acceptance phase15-acceptance pip-check test dev replica-test-env paper-env acceptance nosqlbench-smoke safetybench phase43-acceptance phase44-acceptance phase45-acceptance phase46-acceptance phase47-acceptance phase48-acceptance phase49-acceptance phase50-acceptance phase51-acceptance phase52-acceptance phase53-acceptance phase54-acceptance phase55-acceptance demo-reset demo-start demo-seed demo-workload
 
 preflight:
 	$(PIP) check
@@ -165,6 +165,23 @@ r19f-acceptance:
 	docker compose --profile light up -d --wait postgres mongo-monitored
 	$(PYTHON) -m alembic -c backend/alembic.ini upgrade head
 	R19F_REAL_OLLAMA=1 $(PYTHON) -m pytest backend/tests/diagnosis backend/tests/workloads/test_durable_snapshot.py backend/tests/runs/test_orchestrator_created.py
+	$(MAKE) r19e-acceptance
+	$(MAKE) r19c-acceptance
+	$(MAKE) r19b-acceptance
+	$(PYTHON) -m pytest backend/tests
+	$(PYTHON) -m ruff check backend
+	MYPYPATH=backend $(PYTHON) -m mypy backend/app
+	$(PIP) check
+
+r19gk-real-ai:
+	R19F_REAL_OLLAMA=1 OLLAMA_TIMEOUT_SECONDS=600 $(PYTHON) -m pytest backend/tests/diagnosis/test_real_ollama.py::test_real_ollama_persists_grounded_diagnosis backend/tests/diagnosis/test_real_ollama.py::test_real_currentop_snapshot_to_diagnosis_remains_non_autonomous backend/tests/ranking/test_real_ollama.py::test_real_ollama_persists_candidate_ranking
+
+r19gk-acceptance:
+	docker compose --profile light up -d --wait postgres mongo-monitored mongo-evaluation
+	$(PYTHON) -m alembic -c backend/alembic.ini upgrade head
+	$(PYTHON) -m pytest backend/tests/candidates backend/tests/ranking/test_durable_ranking.py backend/tests/evaluation backend/tests/unit/admission backend/tests/runs backend/tests/diagnosis/test_durable_diagnosis.py
+	$(MAKE) r19gk-real-ai
+	$(PYTHON) -m pytest backend/tests/diagnosis/test_durable_diagnosis.py backend/tests/workloads/test_durable_snapshot.py backend/tests/runs/test_orchestrator_created.py
 	$(MAKE) r19e-acceptance
 	$(MAKE) r19c-acceptance
 	$(MAKE) r19b-acceptance

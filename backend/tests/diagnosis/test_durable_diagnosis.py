@@ -29,7 +29,10 @@ class ControlledProvider(FakeAIProvider):
         return self.output
 
 
-async def _run_with_snapshot(engine: AsyncEngine) -> tuple[UUID, UUID, UUID]:
+async def _run_with_snapshot(
+    engine: AsyncEngine,
+    shapes: tuple[dict[str, object], ...] | None = None,
+) -> tuple[UUID, UUID, UUID]:
     marker = uuid4().hex
     async with engine.begin() as connection:
         user = UUID(str((await connection.execute(text("INSERT INTO users (id,created_at,updated_at,email,password_hash,role,status,failed_login_count) VALUES(gen_random_uuid(),now(),now(),:email,'hash','OPERATOR','ACTIVE',0) RETURNING id"), {"email": f"{marker}@example.test"})).scalar_one()))
@@ -40,11 +43,15 @@ async def _run_with_snapshot(engine: AsyncEngine) -> tuple[UUID, UUID, UUID]:
     run = UUID(str(created.run["id"]))
     now = datetime.now(timezone.utc) - timedelta(seconds=1)
     async with engine.begin() as connection:
-        namespace = UUID(str((await connection.execute(text("INSERT INTO namespaces (id,created_at,updated_at,target_id,name,allowlisted) VALUES(gen_random_uuid(),now(),now(),:target,'orders',true) RETURNING id"), {"target": target})).scalar_one()))
-        shape = UUID(str((await connection.execute(text("INSERT INTO query_shapes (id,created_at,updated_at,namespace_id,shape_hash,normalized_shape,operation) VALUES(gen_random_uuid(),now(),now(),:namespace,:hash,CAST(:shape AS json),'find') RETURNING id"), {"namespace": namespace, "hash": "shape-" + marker, "shape": '{"filter":"DIAGNOSIS_SECRET_CANARY@example.test"}'})).scalar_one()))
+        namespace = UUID(str((await connection.execute(text("INSERT INTO namespaces (id,created_at,updated_at,target_id,name,allowlisted) VALUES(gen_random_uuid(),now(),now(),:target,'r19gk.orders',true) RETURNING id"), {"target": target})).scalar_one()))
+        definitions = shapes or ({"hash": "shape-" + marker, "shape": '{"filter":"DIAGNOSIS_SECRET_CANARY@example.test"}'},)
+        shape_ids: list[UUID] = []
+        for definition in definitions:
+            shape_ids.append(UUID(str((await connection.execute(text("INSERT INTO query_shapes (id,created_at,updated_at,namespace_id,shape_hash,normalized_shape,operation) VALUES(gen_random_uuid(),now(),now(),:namespace,:hash,CAST(:shape AS json),'find') RETURNING id"), {"namespace": namespace, "hash": str(definition["hash"]), "shape": str(definition["shape"])})).scalar_one())))
         window = UUID(str((await connection.execute(text("INSERT INTO telemetry_windows (id,created_at,updated_at,target_id,started_at,ended_at,source,status) VALUES(gen_random_uuid(),now(),now(),:target,:start,:end,'QUERY_STATS','COMPLETED') RETURNING id"), {"target": target, "start": now - timedelta(seconds=5), "end": now})).scalar_one()))
-        for name, value in (("operation_count", 100), ("aggregate_execution_time_ms", 1000), ("manually_critical", 0)):
-            await connection.execute(text("INSERT INTO metric_observations (id,created_at,updated_at,telemetry_window_id,query_shape_id,metric_name,metric_value,observed_at) VALUES(gen_random_uuid(),now(),now(),:window,:shape,:name,:value,:at)"), {"window": window, "shape": shape, "name": name, "value": value, "at": now})
+        for shape in shape_ids:
+            for name, value in (("operation_count", 100), ("aggregate_execution_time_ms", 1000), ("manually_critical", 0)):
+                await connection.execute(text("INSERT INTO metric_observations (id,created_at,updated_at,telemetry_window_id,query_shape_id,metric_name,metric_value,observed_at) VALUES(gen_random_uuid(),now(),now(),:window,:shape,:name,:value,:at)"), {"window": window, "shape": shape, "name": name, "value": value, "at": now})
         await connection.execute(text("UPDATE optimization_runs SET status='SNAPSHOTTING' WHERE id=:id"), {"id": run})
     snapshot = await WorkloadSnapshotService(engine).create_for_run(run)
     async with engine.begin() as connection:

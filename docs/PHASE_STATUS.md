@@ -89,12 +89,19 @@ Phase progression is strictly one phase at a time: implement, run its test and p
 
 ## R19D corrective record
 
-- Result: BLOCKED — COMPONENT_AUDIT. R19 remains INCOMPLETE.
+- Result: INCOMPLETE — FAIL_CLOSED. R19 remains INCOMPLETE.
 - Verification: `backend/tests/runs/test_orchestrator_created.py` — 3 real-PostgreSQL tests passed; Ruff and mypy passed.
 - Implemented boundary: `OptimizationRunOrchestrator` reloads the authoritative run, validates persisted target/evaluation mapping/deployment-mode/initial-job facts, lease-checks, and transitions only `CREATED → SNAPSHOTTING`. Terminal runs are not restarted.
-- Stop condition: `SNAPSHOTTING` returns `WORKLOAD_SNAPSHOT_SERVICE_MISSING`; the worker remains unwired and no snapshot, diagnosis, candidate, ranking, evaluation, admission, approval, production, monitoring, or rollback progress is fabricated.
-- Next corrective blocker: Missing real durable workload-snapshot service that builds, persists, attaches, and verifies a target-bound snapshot from telemetry/query-shape evidence.
-- Known next blocker: `backend/app/worker/service.py` does not yet claim and dispatch `OPTIMIZATION` jobs through the real optimization workflow.
+- Historical stop condition: this R19D component returns `WORKLOAD_SNAPSHOT_SERVICE_MISSING` at `SNAPSHOTTING`; later R19E–K work is deliberately not wired through that worker path.
+- Current blocker: `backend/app/worker/service.py` does not yet claim and dispatch `OPTIMIZATION` jobs through the real optimization workflow. Approval, production deployment, monitoring, and rollback remain excluded.
+
+## R19E, R19F, and R19G–K corrective record
+
+- Result: COMPLETE — INTEGRATION_PASS. R19 itself remains INCOMPLETE.
+- Verification: `make r19gk-acceptance` completed with exit code 0.
+- Result details: the dedicated ordered real-Ollama gate passed all 3 tests (grounded diagnosis, currentOp-derived non-autonomy, and grounded opaque-handle ranking); durable candidates, separate real monitored/evaluation MongoDB trial persistence, frozen calibration and paired-bootstrap admission, crash/restart recovery, candidate immutability, and the three lifecycle outcomes were covered. Full backend regression passed 269 tests with 3 deliberate real-Ollama skips; Ruff, mypy (98 source files), and `pip check` passed.
+- Safety: no development PostgreSQL or MongoDB data, snapshots, jobs, or Docker volumes were reset, recreated, truncated, or deleted. Disposable fixtures alone own their ephemeral databases.
+- Scope boundary: R19D remains incomplete and the worker remains unwired. Approval, production deployment, post-deployment monitoring, and rollback have not been started.
 
 ## Worker integration-test isolation policy
 

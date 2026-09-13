@@ -43,7 +43,16 @@ async def test_terminal_runs_complete_job_idempotently_without_workflow(
     user, target, run_id, job_id = await _run_and_job(engine)
     try:
         async with engine.begin() as connection:
-            await connection.execute(text("UPDATE optimization_runs SET status=CAST(:status AS run_status) WHERE id=:id"), {"status": terminal, "id": run_id})
+            await connection.execute(
+                text(
+                    "UPDATE optimization_runs "
+                    "SET status=CAST(:status AS run_status), "
+                    "completion_reason=CASE WHEN :status='COMPLETED' "
+                    "THEN 'LEGACY_COMPLETED'::run_completion_reason ELSE NULL END "
+                    "WHERE id=:id"
+                ),
+                {"status": terminal, "id": run_id},
+            )
         dispatcher = JobDispatcher(OptimizationJobHandler(create_repositories(engine)))
         repository = JobRepository(engine)
         claimed_job_ids: list[str] = []
@@ -60,7 +69,14 @@ async def test_terminal_runs_complete_job_idempotently_without_workflow(
         assert claimed_job_ids == [job_id]
         async with engine.connect() as connection:
             assert (await connection.execute(text("SELECT status FROM jobs WHERE id=:id"), {"id": job_id})).scalar_one() == "COMPLETED"
-            assert (await connection.execute(text("SELECT status::text FROM optimization_runs WHERE id=:id"), {"id": run_id})).scalar_one() == terminal
+            run = (
+                await connection.execute(
+                    text("SELECT status::text,completion_reason::text FROM optimization_runs WHERE id=:id"),
+                    {"id": run_id},
+                )
+            ).mappings().one()
+            assert run["status"] == terminal
+            assert run["completion_reason"] == ("LEGACY_COMPLETED" if terminal == "COMPLETED" else None)
     finally:
         await _cleanup(engine, target, user)
         await engine.dispose()

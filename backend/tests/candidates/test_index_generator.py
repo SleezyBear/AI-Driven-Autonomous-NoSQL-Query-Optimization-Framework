@@ -9,11 +9,11 @@ def _shape(**changes: object) -> FindQueryShape:
     return FindQueryShape(**values)
 
 
-def test_frozen_equality_sort_range_patterns_are_generated_in_order() -> None:
+def test_frozen_equality_sort_range_pattern_is_generated() -> None:
     candidates = DeterministicIndexGenerator().generate(_shape())
 
-    assert [candidate.pattern for candidate in candidates] == ["EQUALITY_SORT_RANGE", "EQUALITY_RANGE_SORT", "EQUALITY_SORT"]
-    assert [tuple((field.field, field.direction) for field in candidate.action.fields) for candidate in candidates] == [(('customer_id', 1), ('created_at', -1), ('total', 1)), (('customer_id', 1), ('total', 1), ('created_at', -1)), (('customer_id', 1), ('created_at', -1))]
+    assert [candidate.pattern for candidate in candidates] == ["EQUALITY_SORT_RANGE"]
+    assert [tuple((field.field, field.direction) for field in candidate.action.fields) for candidate in candidates] == [(('customer_id', 1), ('created_at', -1), ('total', 1))]
 
 
 def test_candidates_and_fingerprints_are_deterministic_and_bounded() -> None:

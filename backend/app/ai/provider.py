@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import time
 from abc import ABC, abstractmethod
 from enum import Enum
@@ -17,12 +18,30 @@ from app.security.privacy import PrivacyBoundary, PrivacyMode
 
 
 DEFAULT_AI_PROVIDER = "ollama"
+DEFAULT_OLLAMA_TIMEOUT_SECONDS = float(os.environ.get("OLLAMA_TIMEOUT_SECONDS", "600"))
 
 
 class StructuredOutput(BaseModel):
     """Strict output base: providers may return analysis, never executable commands."""
 
     model_config = ConfigDict(extra="forbid", frozen=True)
+
+
+class ProviderFailureCode(str, Enum):
+    UNAVAILABLE = "AI_PROVIDER_UNAVAILABLE"
+    TIMEOUT = "AI_PROVIDER_TIMEOUT"
+    HTTP_ERROR = "AI_PROVIDER_HTTP_ERROR"
+    STRUCTURED_OUTPUT_UNSUPPORTED = "AI_STRUCTURED_OUTPUT_UNSUPPORTED"
+    RESPONSE_SCHEMA_INVALID = "AI_RESPONSE_SCHEMA_INVALID"
+
+
+class ProviderError(RuntimeError):
+    def __init__(self, code: ProviderFailureCode, *, retryable: bool, cause: Exception | None = None) -> None:
+        self.code = code
+        self.retryable = retryable
+        super().__init__(code.value)
+        if cause is not None:
+            self.__cause__ = cause
 
 
 class Diagnosis(StructuredOutput):
@@ -67,11 +86,28 @@ class DiagnosisArtifactResult(StructuredOutput):
 
 
 class CandidateRanking(StructuredOutput):
+    """Legacy advisory ranking for non-durable pipeline callers."""
     candidate_ids: tuple[str, ...]
     rationale: str = Field(min_length=1)
     reasons_by_candidate: dict[str, str] = Field(default_factory=dict)
     risk_notes: tuple[str, ...] = ()
     evidence_refs: tuple[str, ...] = ()
+
+
+class RankingCandidateInput(StructuredOutput):
+    """Closed-set, non-authoritative transport input for a durable ranking."""
+
+    handle: str = Field(pattern=r"^C[1-9][0-9]*$")
+    safe_summary: str = Field(min_length=1)
+
+
+class CandidateHandleRanking(StructuredOutput):
+    """Model output that can rank handles but cannot author candidate identity."""
+
+    candidate_handles: tuple[str, ...]
+    rationale: str = Field(min_length=1)
+    reasons_by_handle: dict[str, str] = Field(default_factory=dict)
+    risk_notes: tuple[str, ...] = ()
 
 
 class AIInvocationRecord(StructuredOutput):
@@ -117,6 +153,10 @@ class AIProvider(ABC):
         """Return a structured ranking of already-generated candidate IDs."""
 
     @abstractmethod
+    async def rank_candidate_handles(self, candidates: tuple[RankingCandidateInput, ...]) -> CandidateHandleRanking:
+        """Rank a closed, handle-only set; PostgreSQL remains identity authority."""
+
+    @abstractmethod
     async def explain_decision(self, decision: str) -> DecisionExplanation:
         """Return a structured explanation of a deterministic decision."""
 
@@ -128,7 +168,7 @@ class AIProvider(ABC):
 class OllamaAIProvider(AIProvider):
     """Ollama HTTP provider that requests strict JSON at temperature zero."""
 
-    def __init__(self, client: httpx.AsyncClient, model: str, embedding_model: str, timeout_seconds: float = 30.0, isolation_lock: BenchmarkOllamaIsolationLock = shared_measurement_lock, privacy_boundary: PrivacyBoundary | None = None) -> None:
+    def __init__(self, client: httpx.AsyncClient, model: str, embedding_model: str, timeout_seconds: float = DEFAULT_OLLAMA_TIMEOUT_SECONDS, isolation_lock: BenchmarkOllamaIsolationLock = shared_measurement_lock, privacy_boundary: PrivacyBoundary | None = None) -> None:
         self._client = client
         self._model = model
         self._embedding_model = embedding_model
@@ -158,6 +198,14 @@ class OllamaAIProvider(AIProvider):
     async def rank_candidates(self, candidate_summaries: tuple[str, ...]) -> CandidateRanking:
         return await self._structured(_prompt("ranking", "\n".join(candidate_summaries)), CandidateRanking)
 
+    async def rank_candidate_handles(self, candidates: tuple[RankingCandidateInput, ...]) -> CandidateHandleRanking:
+        handles = tuple(candidate.handle for candidate in candidates)
+        result = await self._structured(
+            _prompt("ranking", "\n".join(f"{candidate.handle}: {candidate.safe_summary}" for candidate in candidates)),
+            _grounded_ranking_schema(handles),
+        )
+        return cast(CandidateHandleRanking, CandidateHandleRanking.model_validate(result.model_dump(mode="json")))
+
     async def explain_decision(self, decision: str) -> DecisionExplanation:
         return await self._structured("Explain this deterministic decision:\n" + decision, DecisionExplanation)
 
@@ -174,10 +222,18 @@ class OllamaAIProvider(AIProvider):
         prompt = prompt if pre_sanitized else self._privacy_boundary.sanitize_prompt_text(prompt)
         started = time.perf_counter()
         for attempt in range(2):
-            async with self._isolation_lock.ollama_request():
-                response = await self._client.post("/api/generate", json={"model": self._model, "prompt": prompt, "stream": False, "format": output_type.model_json_schema(), "options": {"temperature": 0}}, timeout=self._timeout_seconds)
-                response.raise_for_status()
-                raw_output = response.json().get("response")
+            try:
+                async with self._isolation_lock.ollama_request():
+                    response = await self._client.post("/api/chat", json={"model": self._model, "messages": [{"role": "user", "content": prompt}], "stream": False, "format": output_type.model_json_schema(), "options": {"temperature": 0}}, timeout=self._timeout_seconds)
+                    response.raise_for_status()
+                    message = response.json().get("message")
+                    raw_output = message.get("content") if isinstance(message, dict) else None
+            except httpx.TimeoutException as error:
+                raise ProviderError(ProviderFailureCode.TIMEOUT, retryable=True, cause=error) from error
+            except httpx.ConnectError as error:
+                raise ProviderError(ProviderFailureCode.UNAVAILABLE, retryable=True, cause=error) from error
+            except httpx.HTTPStatusError as error:
+                raise ProviderError(ProviderFailureCode.HTTP_ERROR, retryable=error.response.status_code >= 500, cause=error) from error
             if isinstance(raw_output, str):
                 try:
                     result = cast(StructuredOutput, output_type.model_validate(json.loads(raw_output)))
@@ -192,17 +248,18 @@ class OllamaAIProvider(AIProvider):
                         )
                     )
                     return result
-                except (ValidationError, json.JSONDecodeError):
-                    pass
+                except (ValidationError, json.JSONDecodeError) as error:
+                    if attempt == 1:
+                        raise ProviderError(ProviderFailureCode.RESPONSE_SCHEMA_INVALID, retryable=False, cause=error) from error
             if attempt == 1:
                 break
-        raise ValueError("Ollama returned malformed structured output twice.")
+        raise ProviderError(ProviderFailureCode.STRUCTURED_OUTPUT_UNSUPPORTED, retryable=False)
 
 
 class OpenAICompatibleAIProvider(AIProvider):
     """OpenAI-compatible local HTTP provider with the same advisory-only contract as Ollama."""
 
-    def __init__(self, client: httpx.AsyncClient, model: str, embedding_model: str, timeout_seconds: float = 30.0, isolation_lock: BenchmarkOllamaIsolationLock = shared_measurement_lock, privacy_boundary: PrivacyBoundary | None = None) -> None:
+    def __init__(self, client: httpx.AsyncClient, model: str, embedding_model: str, timeout_seconds: float = DEFAULT_OLLAMA_TIMEOUT_SECONDS, isolation_lock: BenchmarkOllamaIsolationLock = shared_measurement_lock, privacy_boundary: PrivacyBoundary | None = None) -> None:
         self._client = client
         self._model = model
         self._embedding_model = embedding_model
@@ -228,6 +285,14 @@ class OpenAICompatibleAIProvider(AIProvider):
 
     async def rank_candidates(self, candidate_summaries: tuple[str, ...]) -> CandidateRanking:
         return await self._structured(_prompt("ranking", "\n".join(candidate_summaries)), CandidateRanking)
+
+    async def rank_candidate_handles(self, candidates: tuple[RankingCandidateInput, ...]) -> CandidateHandleRanking:
+        handles = tuple(candidate.handle for candidate in candidates)
+        result = await self._structured(
+            _prompt("ranking", "\n".join(f"{candidate.handle}: {candidate.safe_summary}" for candidate in candidates)),
+            _grounded_ranking_schema(handles),
+        )
+        return cast(CandidateHandleRanking, CandidateHandleRanking.model_validate(result.model_dump(mode="json")))
 
     async def explain_decision(self, decision: str) -> DecisionExplanation:
         return await self._structured("Explain this deterministic decision:\n" + decision, DecisionExplanation)
@@ -300,6 +365,10 @@ class FakeAIProvider(AIProvider):
         selected = tuple(sorted(candidate_summaries))
         return CandidateRanking(candidate_ids=selected, rationale="deterministic fake ranking", reasons_by_candidate={candidate: "deterministic" for candidate in selected})
 
+    async def rank_candidate_handles(self, candidates: tuple[RankingCandidateInput, ...]) -> CandidateHandleRanking:
+        handles = tuple(candidate.handle for candidate in candidates)
+        return CandidateHandleRanking(candidate_handles=handles, rationale="deterministic fake ranking", reasons_by_handle={handle: "deterministic" for handle in handles})
+
     async def explain_decision(self, decision: str) -> DecisionExplanation:
         return DecisionExplanation(explanation="fake explanation: " + decision)
 
@@ -338,3 +407,21 @@ def _grounded_diagnosis_schema(query_shape_ids: tuple[str, ...], evidence_refs: 
     )
     artifact = create_model("GroundedDiagnosisArtifact", __base__=StructuredOutput, findings=(tuple[finding, ...], ()))  # type: ignore[valid-type]
     return cast(type[StructuredOutput], artifact)
+
+
+def _grounded_ranking_schema(handles: tuple[str, ...]) -> type[StructuredOutput]:
+    """Constrain the model to opaque handles from this exact ranking request."""
+    if not handles or len(handles) != len(set(handles)):
+        raise ValueError("ranking handles must be non-empty and unique")
+    handle_type: Any = Literal.__getitem__(handles)
+    return cast(
+        type[StructuredOutput],
+        create_model(
+            "GroundedCandidateHandleRanking",
+            __base__=StructuredOutput,
+            candidate_handles=(tuple[handle_type, ...], Field(min_length=len(handles), max_length=len(handles))),
+            rationale=(str, Field(min_length=1)),
+            reasons_by_handle=(dict[handle_type, str], Field(default_factory=dict)),
+            risk_notes=(tuple[str, ...], ()),
+        ),
+    )

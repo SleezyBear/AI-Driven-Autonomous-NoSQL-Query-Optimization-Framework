@@ -31,13 +31,10 @@ class IndexCandidate:
 
 
 class DeterministicIndexGenerator:
-    """Generate at most five safe candidates using only the frozen find patterns."""
+    """Generate the frozen v1 equality → sort → range CREATE_INDEX definition."""
 
-    _PATTERNS = (
-        ("EQUALITY_SORT_RANGE", ("equality", "sort", "range")),
-        ("EQUALITY_RANGE_SORT", ("equality", "range", "sort")),
-        ("EQUALITY_SORT", ("equality", "sort")),
-    )
+    generation_rule_id = "candidate-generator-v1"
+    generation_rule_version = "1"
 
     def generate(self, shape: FindQueryShape) -> tuple[IndexCandidate, ...]:
         """Return stable, de-duplicated candidates in frozen pattern order."""
@@ -46,24 +43,25 @@ class DeterministicIndexGenerator:
             "sort": tuple(sorted(shape.sort_fields)),
             "range": tuple((field, 1) for field in sorted(set(shape.range_fields))),
         }
-        candidates: list[IndexCandidate] = []
-        seen_key_patterns: set[tuple[tuple[str, int], ...]] = set()
-        for pattern, group_names in self._PATTERNS:
-            keys = tuple(item for group_name in group_names for item in groups[group_name])
-            if not keys or len(keys) > 5 or keys in seen_key_patterns:
-                continue
-            seen_key_patterns.add(keys)
-            fingerprint = self._fingerprint(shape, pattern, keys)
-            action = CreateIndexAction(
-                database=shape.database,
-                collection=shape.collection,
-                index_name=f"optimizer_{fingerprint[:16]}",
-                fields=tuple(IndexField(field=field, direction=direction) for field, direction in keys),
-            )
-            candidates.append(IndexCandidate(fingerprint, pattern, action))
-            if len(candidates) == 5:
-                break
-        return tuple(candidates)
+        seen_fields: set[str] = set()
+        keys: list[tuple[str, int]] = []
+        for group_name in ("equality", "sort", "range"):
+            for field, direction in groups[group_name]:
+                if field not in seen_fields:
+                    seen_fields.add(field)
+                    keys.append((field, direction))
+        if not keys or len(keys) > 5:
+            return ()
+        frozen_keys = tuple(keys)
+        pattern = "EQUALITY_SORT_RANGE"
+        fingerprint = self._fingerprint(shape, pattern, frozen_keys)
+        action = CreateIndexAction(
+            database=shape.database,
+            collection=shape.collection,
+            index_name=f"optimizer_{fingerprint[:16]}",
+            fields=tuple(IndexField(field=field, direction=direction) for field, direction in frozen_keys),
+        )
+        return (IndexCandidate(fingerprint, pattern, action),)
 
     @staticmethod
     def _fingerprint(shape: FindQueryShape, pattern: str, keys: tuple[tuple[str, int], ...]) -> str:

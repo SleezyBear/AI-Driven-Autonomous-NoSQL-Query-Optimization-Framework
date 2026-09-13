@@ -36,12 +36,24 @@ async def test_known_literals_are_absent_from_the_captured_ollama_request() -> N
     captured: list[dict[str, object]] = []
 
     async def handler(request: httpx.Request) -> httpx.Response:
-        captured.append(json.loads(request.content))
-        return httpx.Response(200, json={"response": json.dumps({"summary": "safe", "evidence": []})})
+        captured.append({"path": request.url.path, "body": json.loads(request.content)})
+        return httpx.Response(
+            200,
+            json={"message": {"role": "assistant", "content": json.dumps({"summary": "safe", "evidence": []})}},
+        )
 
     async with httpx.AsyncClient(transport=httpx.MockTransport(handler), base_url="http://ollama.test") as client:
         await OllamaAIProvider(client, "chat", "embed").diagnose(f"email={KNOWN_EMAIL}; id={KNOWN_ID}")
 
-    request_body = json.dumps(captured[0], sort_keys=True)
-    assert KNOWN_EMAIL not in request_body
-    assert KNOWN_ID not in request_body
+    captured_request = captured[0]
+    assert captured_request["path"] == "/api/chat"
+    request_body = captured_request["body"]
+    assert isinstance(request_body, dict)
+    assert request_body["stream"] is False
+    assert isinstance(request_body["format"], dict)
+    assert isinstance(request_body["messages"], list)
+    assert request_body["options"] == {"temperature": 0}
+
+    serialized_request = json.dumps(captured_request, sort_keys=True)
+    assert KNOWN_EMAIL not in serialized_request
+    assert KNOWN_ID not in serialized_request

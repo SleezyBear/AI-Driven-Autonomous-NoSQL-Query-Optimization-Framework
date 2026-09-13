@@ -84,7 +84,8 @@ async def test_persisted_transition_and_primary_metric_guards() -> None:
             await runs.transition(created.run["id"], models.RunStatus.CALIBRATING)
         async with engine.begin() as connection:
             await connection.execute(text("UPDATE optimization_runs SET primary_metric_key = 'p99_latency_ms' WHERE id = :id"), {"id": created.run["id"]})
-        assert (await runs.transition(created.run["id"], models.RunStatus.CALIBRATING))["status"] is models.RunStatus.CALIBRATING
+        with pytest.raises(ValueError, match="durable candidate ranking"):
+            await runs.transition(created.run["id"], models.RunStatus.CALIBRATING)
     finally:
         async with engine.begin() as connection:
             await connection.execute(text("DELETE FROM jobs WHERE optimization_run_id IN (SELECT id FROM optimization_runs WHERE target_id = :id)"), {"id": target_id})

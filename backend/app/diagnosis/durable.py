@@ -16,7 +16,7 @@ from sqlalchemy.engine import RowMapping
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine
 
-from app.ai.provider import AIProvider, DiagnosisArtifactResult, DiagnosisFinding
+from app.ai.provider import AIProvider, DiagnosisArtifactResult, DiagnosisFinding, ProviderError
 from app.db import models
 from app.workloads.durable import SnapshotRead, WorkloadSnapshotService
 
@@ -36,6 +36,10 @@ class DiagnosisFailureCode(str, Enum):
     DIAGNOSIS_INTEGRITY_FAILURE = "DIAGNOSIS_INTEGRITY_FAILURE"
     PRIVACY_INVARIANT_FAILURE = "PRIVACY_INVARIANT_FAILURE"
     AI_PROVIDER_UNAVAILABLE = "AI_PROVIDER_UNAVAILABLE"
+    AI_PROVIDER_TIMEOUT = "AI_PROVIDER_TIMEOUT"
+    AI_PROVIDER_HTTP_ERROR = "AI_PROVIDER_HTTP_ERROR"
+    AI_STRUCTURED_OUTPUT_UNSUPPORTED = "AI_STRUCTURED_OUTPUT_UNSUPPORTED"
+    AI_RESPONSE_SCHEMA_INVALID = "AI_RESPONSE_SCHEMA_INVALID"
 
 
 class DiagnosisServiceError(RuntimeError):
@@ -111,6 +115,10 @@ class DiagnosisService:
             except DiagnosisServiceError as error:
                 await self._record_failed_invocation(run, input_hash, evidence_json, error.code)
                 raise
+            except ProviderError as error:
+                code = DiagnosisFailureCode(error.code.value)
+                await self._record_failed_invocation(run, input_hash, evidence_json, code)
+                raise DiagnosisServiceError(code, retryable=error.retryable) from error
             except Exception as error:
                 await self._record_failed_invocation(run, input_hash, evidence_json, DiagnosisFailureCode.AI_PROVIDER_UNAVAILABLE)
                 raise DiagnosisServiceError(DiagnosisFailureCode.AI_PROVIDER_UNAVAILABLE, retryable=True) from error

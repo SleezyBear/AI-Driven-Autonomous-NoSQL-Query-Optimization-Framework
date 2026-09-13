@@ -5,7 +5,15 @@ import json
 import httpx
 import pytest
 
-from app.ai.provider import DEFAULT_AI_PROVIDER, Diagnosis, FakeAIProvider, OllamaAIProvider, OpenAICompatibleAIProvider
+from app.ai.provider import (
+    DEFAULT_AI_PROVIDER,
+    Diagnosis,
+    FakeAIProvider,
+    OllamaAIProvider,
+    OpenAICompatibleAIProvider,
+    ProviderError,
+    ProviderFailureCode,
+)
 
 
 @pytest.mark.asyncio
@@ -14,7 +22,7 @@ async def test_ollama_uses_temperature_zero_and_returns_structured_output() -> N
 
     async def handler(request: httpx.Request) -> httpx.Response:
         calls.append(json.loads(request.content))
-        return httpx.Response(200, json={"response": json.dumps({"summary": "diagnosis", "evidence": ["metric"]})})
+        return httpx.Response(200, json={"message": {"content": json.dumps({"summary": "diagnosis", "evidence": ["metric"]})}})
 
     async with httpx.AsyncClient(transport=httpx.MockTransport(handler), base_url="http://ollama") as client:
         result = await OllamaAIProvider(client, "chat", "embed").diagnose("evidence")
@@ -31,13 +39,35 @@ async def test_ollama_retries_malformed_structured_output_once_then_fails() -> N
     async def handler(request: httpx.Request) -> httpx.Response:
         nonlocal calls
         calls += 1
-        return httpx.Response(200, json={"response": "not-json"})
+        return httpx.Response(200, json={"message": {"content": "not-json"}})
 
     async with httpx.AsyncClient(transport=httpx.MockTransport(handler), base_url="http://ollama") as client:
-        with pytest.raises(ValueError, match="twice"):
+        with pytest.raises(ProviderError) as error:
             await OllamaAIProvider(client, "chat", "embed").diagnose("evidence")
 
     assert calls == 2
+    assert error.value.code is ProviderFailureCode.RESPONSE_SCHEMA_INVALID
+
+
+@pytest.mark.asyncio
+async def test_ollama_maps_transport_and_http_failures_to_safe_provider_codes() -> None:
+    async def unavailable(_: httpx.Request) -> httpx.Response:
+        raise httpx.ConnectError("offline")
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(unavailable), base_url="http://ollama") as client:
+        with pytest.raises(ProviderError) as unavailable_error:
+            await OllamaAIProvider(client, "chat", "embed").diagnose("evidence")
+    assert unavailable_error.value.code is ProviderFailureCode.UNAVAILABLE
+    assert unavailable_error.value.retryable is True
+
+    async def unavailable_http(_: httpx.Request) -> httpx.Response:
+        return httpx.Response(503)
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(unavailable_http), base_url="http://ollama") as client:
+        with pytest.raises(ProviderError) as http_error:
+            await OllamaAIProvider(client, "chat", "embed").diagnose("evidence")
+    assert http_error.value.code is ProviderFailureCode.HTTP_ERROR
+    assert http_error.value.retryable is True
 
 
 @pytest.mark.asyncio
@@ -95,7 +125,7 @@ async def test_openai_compatible_provider_retries_malformed_output_and_ollama_st
 @pytest.mark.asyncio
 async def test_provider_records_versioned_sanitized_structured_invocation() -> None:
     async def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(200, json={"response": json.dumps({"summary": "diagnosis", "evidence": []})})
+        return httpx.Response(200, json={"message": {"content": json.dumps({"summary": "diagnosis", "evidence": []})}})
 
     async with httpx.AsyncClient(transport=httpx.MockTransport(handler), base_url="http://ollama") as client:
         provider = OllamaAIProvider(client, "chat-model", "embed-model")

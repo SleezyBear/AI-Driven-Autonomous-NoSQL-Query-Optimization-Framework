@@ -74,7 +74,7 @@ class TargetRepository(PostgresRepository[models.Target]):
 class RunRepository(PostgresRepository[models.OptimizationRun]):
     model = models.OptimizationRun
 
-    async def transition(self, run_id: str | UUID, next_state: models.RunStatus) -> RowMapping:
+    async def transition(self, run_id: str | UUID, next_state: models.RunStatus, completion_reason: models.RunCompletionReason | None = None) -> RowMapping:
         from app.state_machine.optimization import OptimizationState, validate_transition
 
         async with self._engine.begin() as connection:
@@ -98,7 +98,43 @@ class RunRepository(PostgresRepository[models.OptimizationRun]):
                     raise ValueError("durable diagnosis is required before candidate generation")
             if current is OptimizationState.RANKING and desired is OptimizationState.CALIBRATING and row["primary_metric_key"] is None:
                 raise ValueError("primary metric is required before calibration")
-            result = await connection.execute(update(self.table).where(self.table.c.id == row["id"]).values(status=next_state, updated_at=datetime.now(timezone.utc)).returning(*self.table.c))
+            if current is OptimizationState.GENERATING_CANDIDATES and desired is OptimizationState.RANKING:
+                count = (await connection.execute(select(models.CandidateGenerationArtifact.__table__.c.candidate_count).where(models.CandidateGenerationArtifact.__table__.c.optimization_run_id == row["id"]))).scalar_one_or_none()
+                if count is None or count <= 0:
+                    raise ValueError("non-empty completed generation artifact is required before ranking")
+            if current is OptimizationState.RANKING and desired is OptimizationState.CALIBRATING:
+                ranking = (await connection.execute(select(models.CandidateRankingArtifact.__table__.c.id).where(models.CandidateRankingArtifact.__table__.c.optimization_run_id == row["id"]))).scalar_one_or_none()
+                if ranking is None:
+                    raise ValueError("durable candidate ranking is required before calibration")
+            if current is OptimizationState.CALIBRATING and desired is OptimizationState.EVALUATING:
+                plan = (await connection.execute(select(models.EvaluationPlan.__table__.c.id).where(models.EvaluationPlan.__table__.c.optimization_run_id == row["id"]))).scalar_one_or_none()
+                if plan is None:
+                    raise ValueError("durable evaluation plan is required before evaluation")
+            if current is OptimizationState.EVALUATING and desired is OptimizationState.ADMISSION:
+                plan = (await connection.execute(select(models.EvaluationPlan.__table__.c.selected_candidate_ids).where(models.EvaluationPlan.__table__.c.optimization_run_id == row["id"]))).scalar_one_or_none()
+                if plan is None:
+                    raise ValueError("durable evaluation plan is required before admission")
+                completed = (await connection.execute(select(models.EvaluationRun.__table__.c.candidate_id).where(models.EvaluationRun.__table__.c.candidate_id.in_([UUID(value) for value in plan]), models.EvaluationRun.__table__.c.status == "COMPLETED"))).scalars().all()
+                if set(completed) != {UUID(value) for value in plan}:
+                    raise ValueError("all frozen evaluation candidates require completed durable evaluation evidence")
+            if current is OptimizationState.ADMISSION and desired is OptimizationState.ADMITTED:
+                selected = (await connection.execute(select(models.AdmissionArtifact.__table__.c.selected_candidate_id).where(models.AdmissionArtifact.__table__.c.optimization_run_id == row["id"]))).scalar_one_or_none()
+                if selected is None:
+                    raise ValueError("selected admitted candidate is required before admitted state")
+            if desired is OptimizationState.COMPLETED:
+                if completion_reason is None:
+                    raise ValueError("completed runs require a completion reason")
+                if current is OptimizationState.GENERATING_CANDIDATES:
+                    generation = (await connection.execute(select(models.CandidateGenerationArtifact.__table__.c.candidate_count).where(models.CandidateGenerationArtifact.__table__.c.optimization_run_id == row["id"]))).scalar_one_or_none()
+                    if generation != 0 or completion_reason is not models.RunCompletionReason.NO_CANDIDATES:
+                        raise ValueError("zero-candidate completion requires a completed empty generation artifact")
+                if current is OptimizationState.ADMISSION:
+                    admission = (await connection.execute(select(models.AdmissionArtifact.__table__.c.admitted_candidate_ids).where(models.AdmissionArtifact.__table__.c.optimization_run_id == row["id"]))).scalar_one_or_none()
+                    if admission is None or admission or completion_reason is not models.RunCompletionReason.NO_ADMITTED_CANDIDATE:
+                        raise ValueError("no-admission completion requires an empty durable admission artifact")
+            elif completion_reason is not None:
+                raise ValueError("completion reason is valid only for completed runs")
+            result = await connection.execute(update(self.table).where(self.table.c.id == row["id"]).values(status=next_state, completion_reason=completion_reason, updated_at=datetime.now(timezone.utc)).returning(*self.table.c))
             return result.mappings().one()
 
     async def attach_workload_snapshot(self, run_id: str | UUID, workload_snapshot_id: str | UUID) -> RowMapping:
@@ -128,6 +164,22 @@ class EvaluationRepository(PostgresRepository[models.EvaluationRun]):
 
 class AdmissionRepository(PostgresRepository[models.AdmissionDecision]):
     model = models.AdmissionDecision
+
+
+class CandidateGenerationRepository(PostgresRepository[models.CandidateGenerationArtifact]):
+    model = models.CandidateGenerationArtifact
+
+
+class CandidateRankingRepository(PostgresRepository[models.CandidateRankingArtifact]):
+    model = models.CandidateRankingArtifact
+
+
+class EvaluationPlanRepository(PostgresRepository[models.EvaluationPlan]):
+    model = models.EvaluationPlan
+
+
+class AdmissionArtifactRepository(PostgresRepository[models.AdmissionArtifact]):
+    model = models.AdmissionArtifact
 
 
 class ApprovalRepository(PostgresRepository[models.ApprovalRequest]):
@@ -248,6 +300,10 @@ class ControlPlaneRepositories:
         self.trial_pairs = TrialPairRepository(engine)
         self.trial_metrics = TrialMetricRepository(engine)
         self.admissions = AdmissionRepository(engine)
+        self.candidate_generations = CandidateGenerationRepository(engine)
+        self.candidate_rankings = CandidateRankingRepository(engine)
+        self.evaluation_plans = EvaluationPlanRepository(engine)
+        self.admission_artifacts = AdmissionArtifactRepository(engine)
         self.safety = SafetyRepository(engine)
         self.approvals = ApprovalRepository(engine)
         self.ledger = LedgerRepository(engine)

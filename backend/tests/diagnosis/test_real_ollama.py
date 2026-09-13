@@ -10,7 +10,7 @@ import pytest
 from sqlalchemy.ext.asyncio import create_async_engine
 from pymongo import AsyncMongoClient
 
-from app.ai.provider import OllamaAIProvider
+from app.ai.provider import DEFAULT_OLLAMA_TIMEOUT_SECONDS, OllamaAIProvider
 from app.diagnosis.durable import DiagnosisService
 from app.telemetry.persistence import TelemetryPersistenceService
 from app.telemetry.providers import CurrentOpTelemetryProvider
@@ -34,7 +34,7 @@ async def test_real_ollama_persists_grounded_diagnosis(disposable_diagnosis_data
             client,
             os.environ.get("OLLAMA_CHAT_MODEL", "gemma4:e4b"),
             os.environ.get("OLLAMA_EMBEDDING_MODEL", "embeddinggemma"),
-            timeout_seconds=180.0,
+            timeout_seconds=DEFAULT_OLLAMA_TIMEOUT_SECONDS,
         )
         diagnosis = await DiagnosisService(engine, provider).create_for_run(run)
         assert await DiagnosisService(engine, provider).verify_diagnosis_integrity(diagnosis.diagnosis_id)
@@ -74,7 +74,7 @@ async def test_real_currentop_snapshot_to_diagnosis_remains_non_autonomous(dispo
             from sqlalchemy import text
 
             await connection.execute(text("UPDATE optimization_runs SET status='DIAGNOSING' WHERE id=:id"), {"id": run})
-        ai_provider = OllamaAIProvider(client, os.environ.get("OLLAMA_CHAT_MODEL", "gemma4:e4b"), os.environ.get("OLLAMA_EMBEDDING_MODEL", "embeddinggemma"), timeout_seconds=180.0)
+        ai_provider = OllamaAIProvider(client, os.environ.get("OLLAMA_CHAT_MODEL", "gemma4:e4b"), os.environ.get("OLLAMA_EMBEDDING_MODEL", "embeddinggemma"), timeout_seconds=DEFAULT_OLLAMA_TIMEOUT_SECONDS)
         diagnosis = await DiagnosisService(engine, ai_provider).create_for_run(run)
         read = await WorkloadSnapshotService(engine).read(snapshot.snapshot_id)
         assert read.metadata["completeness"]["production_autonomy_eligible"] is False

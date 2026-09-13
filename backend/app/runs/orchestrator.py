@@ -4,15 +4,21 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
+from collections.abc import Awaitable, Callable
 from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncEngine
 
+from app.admission.durable import DurableAdmissionService
+from app.admission.models import AdmissionRequest, BenchmarkProfile
 from app.autonomy.policy import DeploymentMode
+from app.candidates.durable import CandidateGenerationError, CandidateGenerationService
 from app.diagnosis.durable import DiagnosisService, DiagnosisServiceError
 from app.db import models
 from app.db.repositories import ControlPlaneRepositories, RunRepository, create_repositories
+from app.evaluation.durable import DurableEvaluationService, EvaluationPlanError
+from app.ranking.durable import CandidateRankingError, CandidateRankingService
 from app.worker.durable import ExecutionContext
 from app.workloads.durable import WorkloadSnapshotError, WorkloadSnapshotService
 
@@ -39,12 +45,18 @@ class OrchestrationInvariantError(ValueError):
 class OptimizationRunOrchestrator:
     """Resume only the real durable prefix of the OptimizationRun lifecycle."""
 
-    def __init__(self, engine: AsyncEngine, repositories: ControlPlaneRepositories | None = None, snapshot_service: WorkloadSnapshotService | None = None, diagnosis_service: DiagnosisService | None = None) -> None:
+    def __init__(self, engine: AsyncEngine, repositories: ControlPlaneRepositories | None = None, snapshot_service: WorkloadSnapshotService | None = None, diagnosis_service: DiagnosisService | None = None, candidate_service: CandidateGenerationService | None = None, ranking_service: CandidateRankingService | None = None, evaluation_service: DurableEvaluationService | None = None, admission_service: DurableAdmissionService | None = None, evaluation_executor: Callable[[UUID], Awaitable[None]] | None = None, admission_requests: Callable[[UUID], Awaitable[dict[UUID, AdmissionRequest]]] | None = None) -> None:
         self._engine = engine
         self._repositories = repositories or create_repositories(engine)
         self._runs = RunRepository(engine)
         self._snapshots = snapshot_service or WorkloadSnapshotService(engine)
         self._diagnosis = diagnosis_service
+        self._candidates = candidate_service
+        self._ranking = ranking_service
+        self._evaluation = evaluation_service
+        self._admission = admission_service
+        self._evaluation_executor = evaluation_executor
+        self._admission_requests = admission_requests
 
     async def run(self, run_id: UUID, execution_context: ExecutionContext) -> OrchestrationResult:
         """Reload authoritative state and advance no further than durable capability permits."""
@@ -83,6 +95,65 @@ class OptimizationRunOrchestrator:
                 return OrchestrationResult(OrchestrationOutcome.PROGRESSED, _run_status(transitioned["status"]))
             except DiagnosisServiceError as error:
                 return OrchestrationResult(OrchestrationOutcome.BLOCKED, status, error.code.value)
+        if status is models.RunStatus.GENERATING_CANDIDATES:
+            if self._candidates is None:
+                return OrchestrationResult(OrchestrationOutcome.BLOCKED, status, "CANDIDATE_GENERATION_SERVICE_UNAVAILABLE")
+            try:
+                execution_context.ensure_lease_owned()
+                generated = await self._candidates.create_for_run(run_id)
+                execution_context.ensure_lease_owned()
+                if generated.candidate_count == 0:
+                    transitioned = await self._runs.transition(run_id, models.RunStatus.COMPLETED, models.RunCompletionReason.NO_CANDIDATES)
+                else:
+                    transitioned = await self._runs.transition(run_id, models.RunStatus.RANKING)
+                return OrchestrationResult(OrchestrationOutcome.PROGRESSED, _run_status(transitioned["status"]))
+            except CandidateGenerationError as error:
+                return OrchestrationResult(OrchestrationOutcome.BLOCKED, status, str(error))
+        if status is models.RunStatus.RANKING:
+            if self._ranking is None:
+                return OrchestrationResult(OrchestrationOutcome.BLOCKED, status, "CANDIDATE_RANKING_SERVICE_UNAVAILABLE")
+            try:
+                execution_context.ensure_lease_owned()
+                await self._ranking.create_for_run(run_id)
+                execution_context.ensure_lease_owned()
+                transitioned = await self._runs.transition(run_id, models.RunStatus.CALIBRATING)
+                return OrchestrationResult(OrchestrationOutcome.PROGRESSED, _run_status(transitioned["status"]))
+            except CandidateRankingError as error:
+                return OrchestrationResult(OrchestrationOutcome.BLOCKED, status, str(error))
+        if status is models.RunStatus.CALIBRATING:
+            if self._evaluation is None:
+                return OrchestrationResult(OrchestrationOutcome.BLOCKED, status, "EVALUATION_SERVICE_UNAVAILABLE")
+            try:
+                execution_context.ensure_lease_owned()
+                # Selection is frozen before controlled benchmark execution. The
+                # isolated executor records real A/A calibration evidence later.
+                await self._evaluation.create_plan_for_run(run_id, BenchmarkProfile.SMOKE, {"aa_calibration_status": "PENDING_MEASUREMENT"})
+                execution_context.ensure_lease_owned()
+                transitioned = await self._runs.transition(run_id, models.RunStatus.EVALUATING)
+                return OrchestrationResult(OrchestrationOutcome.PROGRESSED, _run_status(transitioned["status"]))
+            except EvaluationPlanError as error:
+                return OrchestrationResult(OrchestrationOutcome.BLOCKED, status, str(error))
+        if status is models.RunStatus.EVALUATING:
+            if self._evaluation_executor is None:
+                # A worker is deliberately not wired in this macro-phase: only
+                # an injected isolated benchmark executor may create pair evidence.
+                return OrchestrationResult(OrchestrationOutcome.BLOCKED, status, "ISOLATED_BENCHMARK_EXECUTOR_REQUIRED")
+            execution_context.ensure_lease_owned()
+            await self._evaluation_executor(run_id)
+            execution_context.ensure_lease_owned()
+            transitioned = await self._runs.transition(run_id, models.RunStatus.ADMISSION)
+            return OrchestrationResult(OrchestrationOutcome.PROGRESSED, _run_status(transitioned["status"]))
+        if status is models.RunStatus.ADMISSION:
+            if self._admission is None or self._admission_requests is None:
+                return OrchestrationResult(OrchestrationOutcome.BLOCKED, status, "ADMISSION_SERVICE_UNAVAILABLE")
+            execution_context.ensure_lease_owned()
+            result = await self._admission.decide_for_run(run_id, await self._admission_requests(run_id))
+            execution_context.ensure_lease_owned()
+            if result.selected_candidate_id is None:
+                transitioned = await self._runs.transition(run_id, models.RunStatus.COMPLETED, models.RunCompletionReason.NO_ADMITTED_CANDIDATE)
+            else:
+                transitioned = await self._runs.transition(run_id, models.RunStatus.ADMITTED)
+            return OrchestrationResult(OrchestrationOutcome.PROGRESSED, _run_status(transitioned["status"]))
         if status is not models.RunStatus.CREATED:
             raise OrchestrationInvariantError(f"unsupported durable orchestration resume state: {status.value}")
 
