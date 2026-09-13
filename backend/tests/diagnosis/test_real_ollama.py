@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+from uuid import uuid4
 
 import httpx
 import pytest
@@ -57,8 +58,8 @@ async def test_real_currentop_snapshot_to_diagnosis_remains_non_autonomous(dispo
     mongo = AsyncMongoClient("mongodb://control_plane_root:control_plane_root_dev_only@127.0.0.1:27017/admin?authSource=admin&directConnection=true")
     try:
         _, target, run = await _run(engine)
-        collection = mongo.get_database("r19f_currentop_acceptance").get_collection("orders")
-        await collection.insert_one({"customer_email": "R19F_CURRENTOP_CANARY@example.test"})
+        collection = mongo.get_database(f"r19f_currentop_acceptance_{uuid4().hex}").get_collection("orders")
+        inserted = await collection.insert_one({"customer_email": "R19F_CURRENTOP_CANARY@example.test"})
 
         async def slow_query() -> None:
             await collection.find_one({"$where": "sleep(2500) || true"})
@@ -80,6 +81,8 @@ async def test_real_currentop_snapshot_to_diagnosis_remains_non_autonomous(dispo
         assert read.metadata["completeness"]["production_autonomy_eligible"] is False
         assert await DiagnosisService(engine, ai_provider).verify_diagnosis_integrity(diagnosis.diagnosis_id)
     finally:
+        if "inserted" in locals():
+            await collection.delete_one({"_id": inserted.inserted_id})
         await mongo.close()
         await client.aclose()
         await engine.dispose()

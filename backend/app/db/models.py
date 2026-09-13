@@ -374,6 +374,35 @@ class AdmissionArtifact(TimestampedUUID):
     artifact_fingerprint: Mapped[str] = mapped_column(String(128), unique=True)
 
 
+class AuthorityDecision(TimestampedUUID):
+    """Immutable authority bound to the exact selected candidate definition."""
+
+    __tablename__ = "authority_decisions"
+    optimization_run_id: Mapped[UUID] = mapped_column(ForeignKey("optimization_runs.id", ondelete="RESTRICT"), unique=True)
+    candidate_id: Mapped[UUID] = mapped_column(ForeignKey("candidates.id", ondelete="RESTRICT"))
+    candidate_fingerprint: Mapped[str] = mapped_column(String(128))
+    deployment_mode: Mapped[str] = mapped_column(String(32))
+    authority_type: Mapped[str] = mapped_column(String(32))
+    authority_reason: Mapped[str] = mapped_column(String(128))
+    production_autonomy_eligible: Mapped[bool] = mapped_column(Boolean)
+    integrity_fingerprint: Mapped[str] = mapped_column(String(128), unique=True)
+
+
+class DeploymentArtifact(TimestampedUUID):
+    """Durable intent and reconciliation state for one owned production action."""
+
+    __tablename__ = "deployment_artifacts"
+    optimization_run_id: Mapped[UUID] = mapped_column(ForeignKey("optimization_runs.id", ondelete="RESTRICT"), unique=True)
+    candidate_id: Mapped[UUID] = mapped_column(ForeignKey("candidates.id", ondelete="RESTRICT"))
+    candidate_fingerprint: Mapped[str] = mapped_column(String(128))
+    action_fingerprint: Mapped[str] = mapped_column(String(128))
+    idempotency_key: Mapped[str] = mapped_column(String(128), unique=True)
+    status: Mapped[str] = mapped_column(String(32))
+    before_state: Mapped[dict[str, Any]] = mapped_column(JSON)
+    inverse_action: Mapped[dict[str, Any]] = mapped_column(JSON)
+    after_state: Mapped[dict[str, Any] | None] = mapped_column(JSON)
+
+
 class SafetyResult(TimestampedUUID):
     __tablename__ = "safety_results"
     admission_decision_id: Mapped[UUID] = mapped_column(ForeignKey("admission_decisions.id", ondelete="CASCADE"), index=True)
@@ -389,6 +418,8 @@ class ApprovalRequest(TimestampedUUID):
     action_id: Mapped[str] = mapped_column(String(128), index=True)
     target_id: Mapped[UUID] = mapped_column(ForeignKey("targets.id", ondelete="RESTRICT"), index=True)
     candidate_id: Mapped[UUID] = mapped_column(PG_UUID(as_uuid=True), index=True)
+    optimization_run_id: Mapped[UUID | None] = mapped_column(ForeignKey("optimization_runs.id", ondelete="RESTRICT"), unique=True)
+    candidate_fingerprint: Mapped[str | None] = mapped_column(String(128))
     evidence_hash: Mapped[str] = mapped_column(String(128))
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
     status: Mapped[str] = mapped_column(String(32))

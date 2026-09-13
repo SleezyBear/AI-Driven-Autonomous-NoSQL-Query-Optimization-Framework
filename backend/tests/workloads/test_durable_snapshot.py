@@ -20,9 +20,6 @@ from app.telemetry.persistence import TelemetryPersistenceService
 from app.telemetry.providers import CurrentOpTelemetryProvider
 
 
-DATABASE_URL = "postgresql+asyncpg://control_plane:control_plane_dev_only@127.0.0.1:5432/control_plane"
-
-
 async def _run(engine: object) -> tuple[UUID, UUID, UUID]:
     marker = uuid4().hex
     async with engine.begin() as connection:  # type: ignore[union-attr]
@@ -47,8 +44,8 @@ async def _telemetry(engine: object, target: UUID, *, stale: bool = False, secre
 
 
 @pytest.mark.asyncio
-async def test_snapshot_is_idempotent_immutable_and_restart_safe() -> None:
-    engine = create_async_engine(DATABASE_URL)
+async def test_snapshot_is_idempotent_immutable_and_restart_safe(disposable_workload_database: str) -> None:
+    engine = create_async_engine(disposable_workload_database)
     user, target, run = await _run(engine)
     try:
         await _telemetry(engine, target)
@@ -58,7 +55,7 @@ async def test_snapshot_is_idempotent_immutable_and_restart_safe() -> None:
         assert first.snapshot_id == second.snapshot_id and second.reused
         assert await service.verify_snapshot_integrity(first.snapshot_id)
         await engine.dispose()
-        engine = create_async_engine(DATABASE_URL)
+        engine = create_async_engine(disposable_workload_database)
         assert await WorkloadSnapshotService(engine).verify_snapshot_integrity(first.snapshot_id)
         async with engine.begin() as connection:
             with pytest.raises(Exception, match="immutable"):
@@ -68,8 +65,8 @@ async def test_snapshot_is_idempotent_immutable_and_restart_safe() -> None:
 
 
 @pytest.mark.asyncio
-async def test_no_source_stale_and_transactional_failure() -> None:
-    engine = create_async_engine(DATABASE_URL)
+async def test_no_source_stale_and_transactional_failure(disposable_workload_database: str) -> None:
+    engine = create_async_engine(disposable_workload_database)
     user, target, run = await _run(engine)
     try:
         with pytest.raises(WorkloadSnapshotError) as no_source:
@@ -84,8 +81,8 @@ async def test_no_source_stale_and_transactional_failure() -> None:
 
 
 @pytest.mark.asyncio
-async def test_concurrent_snapshot_and_orchestrator_resume() -> None:
-    engine = create_async_engine(DATABASE_URL)
+async def test_concurrent_snapshot_and_orchestrator_resume(disposable_workload_database: str) -> None:
+    engine = create_async_engine(disposable_workload_database)
     user, target, run = await _run(engine)
     try:
         await _telemetry(engine, target)
@@ -98,15 +95,15 @@ async def test_concurrent_snapshot_and_orchestrator_resume() -> None:
 
 
 @pytest.mark.asyncio
-async def test_real_monitored_mongo_currentop_to_postgres_to_snapshot() -> None:
+async def test_real_monitored_mongo_currentop_to_postgres_to_snapshot(disposable_workload_database: str) -> None:
     """The real path is currentOp-only, therefore not autonomy-qualified."""
-    engine = create_async_engine(DATABASE_URL)
+    engine = create_async_engine(disposable_workload_database)
     user, target, run = await _run(engine)
     uri = "mongodb://control_plane_root:control_plane_root_dev_only@127.0.0.1:27017/admin?authSource=admin&directConnection=true"
     client: AsyncMongoClient[object] = AsyncMongoClient(uri)
     try:
-        collection = client.get_database("r19e_snapshot_acceptance").get_collection("orders")
-        await collection.insert_one({"customer_email": "SNAPSHOT_SECRET_CANARY@example.test", "order_token": "SNAPSHOT_PRIVATE_123"})
+        collection = client.get_database(f"r19e_snapshot_acceptance_{uuid4().hex}").get_collection("orders")
+        inserted = await collection.insert_one({"customer_email": "SNAPSHOT_SECRET_CANARY@example.test", "order_token": "SNAPSHOT_PRIVATE_123"})
 
         async def slow_query() -> None:
             await collection.find_one({"$where": "sleep(2500) || true"})
@@ -130,5 +127,7 @@ async def test_real_monitored_mongo_currentop_to_postgres_to_snapshot() -> None:
             assert "SNAPSHOT_SECRET_CANARY" not in stored and "SNAPSHOT_PRIVATE_123" not in stored
             assert (await connection.execute(text("SELECT workload_snapshot_id FROM optimization_runs WHERE id=:id"), {"id": run})).scalar_one() == result.snapshot_id
     finally:
+        if "inserted" in locals():
+            await collection.delete_one({"_id": inserted.inserted_id})
         await client.close()
         await engine.dispose()

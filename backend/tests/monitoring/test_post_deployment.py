@@ -84,8 +84,8 @@ async def test_new_errors_timeouts_or_replica_failure_are_computed_as_rollback_c
 
 
 @pytest.mark.asyncio
-async def test_monitor_persists_raw_windows_and_computed_counters_to_postgres() -> None:
-    engine = create_async_engine("postgresql+asyncpg://control_plane:control_plane_dev_only@127.0.0.1:5432/control_plane")
+async def test_monitor_persists_raw_windows_and_computed_counters_to_postgres(disposable_monitoring_database: str) -> None:
+    engine = create_async_engine(disposable_monitoring_database)
     record_id = None
     try:
         monitor = PostDeploymentMonitor(

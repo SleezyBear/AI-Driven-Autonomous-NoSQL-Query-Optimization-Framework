@@ -12,7 +12,6 @@ from pathlib import Path
 from uuid import uuid4
 
 import pytest
-from fastapi.testclient import TestClient
 from pydantic import ValidationError
 
 os.environ.setdefault("JWT_SIGNING_KEY", "r48-test-signing-key-that-is-long-enough")
@@ -28,16 +27,12 @@ from app.auth.security import Principal, Role
 from app.db import models
 from app.db.runtime import create_control_plane_engine
 from app.ledger.chain import AppendOnlyLedger
-from app.main import app
 from app.production.executor import DeploymentRequest, ProductionExecutor
 from app.security.privacy import PrivacyBoundary, PrivacyMode
 from app.security.redaction import redact_value
 
 
 ROOT = Path(__file__).resolve().parents[3]
-client = TestClient(app)
-
-
 def _action() -> CreateIndexAction:
     return CreateIndexAction(database="commerce", collection="orders", index_name="customer_created", fields=({"field": "customer_id", "direction": 1},))
 
@@ -94,7 +89,7 @@ async def test_cross_target_approval_reuse_and_stale_evidence_fail_before_mutati
 
 
 @pytest.mark.asyncio
-async def test_expired_approval_and_self_approval_fail() -> None:
+async def test_expired_approval_and_self_approval_fail(security_client: object) -> None:
     current = datetime(2026, 8, 21, tzinfo=timezone.utc)
     flow = ApprovalFlow(approval_ttl=timedelta(seconds=1), now=lambda: current)
     approval = flow.request("candidate-1", "evidence-a", "target-1")
@@ -122,12 +117,11 @@ async def test_expired_approval_and_self_approval_fail() -> None:
                     failed_login_count=0,
                 )
             )
-        with TestClient(app) as authenticated_client:
-            response = authenticated_client.post(
-                "/approvals/request-1",
-                json={"requested_by_user_id": str(user_id)},
-                headers={"Authorization": f"Bearer {jwt_service().issue(Principal(str(user_id), Role.APPROVER))}"},
-            )
+        response = security_client.post(  # type: ignore[union-attr]
+            "/approvals/request-1",
+            json={"requested_by_user_id": str(user_id)},
+            headers={"Authorization": f"Bearer {jwt_service().issue(Principal(str(user_id), Role.APPROVER))}"},
+        )
         assert response.status_code == 403
     finally:
         async with engine.begin() as connection:

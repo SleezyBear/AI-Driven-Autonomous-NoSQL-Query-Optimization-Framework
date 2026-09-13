@@ -4,8 +4,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Mapping
 from uuid import UUID
+from typing import cast
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncEngine
@@ -13,6 +14,8 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 from app.admission.durable import DurableAdmissionService
 from app.admission.models import AdmissionRequest, BenchmarkProfile
 from app.autonomy.policy import DeploymentMode
+from app.approvals.durable import DurableApprovalService
+from app.authority.durable import DurableAuthorityService
 from app.candidates.durable import CandidateGenerationError, CandidateGenerationService
 from app.diagnosis.durable import DiagnosisService, DiagnosisServiceError
 from app.db import models
@@ -21,6 +24,8 @@ from app.evaluation.durable import DurableEvaluationService, EvaluationPlanError
 from app.ranking.durable import CandidateRankingError, CandidateRankingService
 from app.worker.durable import ExecutionContext
 from app.workloads.durable import WorkloadSnapshotError, WorkloadSnapshotService
+from app.monitoring.post_deployment import MonitoringResult, MonitoringStatus
+from app.production.durable import DurableDeploymentService
 
 
 class OrchestrationOutcome(str, Enum):
@@ -45,7 +50,7 @@ class OrchestrationInvariantError(ValueError):
 class OptimizationRunOrchestrator:
     """Resume only the real durable prefix of the OptimizationRun lifecycle."""
 
-    def __init__(self, engine: AsyncEngine, repositories: ControlPlaneRepositories | None = None, snapshot_service: WorkloadSnapshotService | None = None, diagnosis_service: DiagnosisService | None = None, candidate_service: CandidateGenerationService | None = None, ranking_service: CandidateRankingService | None = None, evaluation_service: DurableEvaluationService | None = None, admission_service: DurableAdmissionService | None = None, evaluation_executor: Callable[[UUID], Awaitable[None]] | None = None, admission_requests: Callable[[UUID], Awaitable[dict[UUID, AdmissionRequest]]] | None = None) -> None:
+    def __init__(self, engine: AsyncEngine, repositories: ControlPlaneRepositories | None = None, snapshot_service: WorkloadSnapshotService | None = None, diagnosis_service: DiagnosisService | None = None, candidate_service: CandidateGenerationService | None = None, ranking_service: CandidateRankingService | None = None, evaluation_service: DurableEvaluationService | None = None, admission_service: DurableAdmissionService | None = None, evaluation_executor: Callable[[UUID], Awaitable[None]] | None = None, admission_requests: Callable[[UUID], Awaitable[dict[UUID, AdmissionRequest]]] | None = None, authority_service: DurableAuthorityService | None = None, approval_service: DurableApprovalService | None = None, deployment_service: DurableDeploymentService | None = None, monitoring_executor: Callable[[UUID], Awaitable[MonitoringResult]] | None = None) -> None:
         self._engine = engine
         self._repositories = repositories or create_repositories(engine)
         self._runs = RunRepository(engine)
@@ -57,6 +62,10 @@ class OptimizationRunOrchestrator:
         self._admission = admission_service
         self._evaluation_executor = evaluation_executor
         self._admission_requests = admission_requests
+        self._authority = authority_service
+        self._approvals = approval_service
+        self._deployment = deployment_service
+        self._monitoring_executor = monitoring_executor
 
     async def run(self, run_id: UUID, execution_context: ExecutionContext) -> OrchestrationResult:
         """Reload authoritative state and advance no further than durable capability permits."""
@@ -154,6 +163,46 @@ class OptimizationRunOrchestrator:
             else:
                 transitioned = await self._runs.transition(run_id, models.RunStatus.ADMITTED)
             return OrchestrationResult(OrchestrationOutcome.PROGRESSED, _run_status(transitioned["status"]))
+        if status is models.RunStatus.ADMITTED:
+            if self._authority is None:
+                return OrchestrationResult(OrchestrationOutcome.BLOCKED, status, "AUTHORITY_SERVICE_UNAVAILABLE")
+            authority = await self._authority.decide_for_run(run_id)
+            execution_context.ensure_lease_owned()
+            if authority.automatic:
+                transitioned = await self._runs.transition(run_id, models.RunStatus.APPROVED)
+                return OrchestrationResult(OrchestrationOutcome.PROGRESSED, _run_status(transitioned["status"]))
+            if self._approvals is None:
+                return OrchestrationResult(OrchestrationOutcome.BLOCKED, status, "APPROVAL_SERVICE_UNAVAILABLE")
+            await self._create_bound_approval(run, authority.decision)
+            execution_context.ensure_lease_owned()
+            transitioned = await self._runs.transition(run_id, models.RunStatus.APPROVAL_PENDING)
+            return OrchestrationResult(OrchestrationOutcome.BLOCKED, _run_status(transitioned["status"]), "WAITING_FOR_APPROVAL")
+        if status is models.RunStatus.APPROVAL_PENDING:
+            return OrchestrationResult(OrchestrationOutcome.BLOCKED, status, "WAITING_FOR_APPROVAL")
+        if status in {models.RunStatus.APPROVED, models.RunStatus.DEPLOYING}:
+            if self._deployment is None:
+                return OrchestrationResult(OrchestrationOutcome.BLOCKED, status, "DURABLE_DEPLOYMENT_SERVICE_UNAVAILABLE")
+            await self._deployment.deploy_for_run(run_id, execution_context)
+            refreshed = await self._runs.get(run_id)
+            if refreshed is None:
+                raise OrchestrationInvariantError("run disappeared after durable deployment")
+            return OrchestrationResult(OrchestrationOutcome.PROGRESSED, _run_status(refreshed["status"]))
+        if status is models.RunStatus.DEPLOYED:
+            execution_context.ensure_lease_owned()
+            transitioned = await self._runs.transition(run_id, models.RunStatus.MONITORING)
+            return OrchestrationResult(OrchestrationOutcome.PROGRESSED, _run_status(transitioned["status"]))
+        if status is models.RunStatus.MONITORING:
+            if self._monitoring_executor is None:
+                return OrchestrationResult(OrchestrationOutcome.BLOCKED, status, "MONITORING_EVIDENCE_UNAVAILABLE")
+            monitoring_result = await self._monitoring_executor(run_id)
+            execution_context.ensure_lease_owned()
+            if monitoring_result.status in {MonitoringStatus.STABLE, MonitoringStatus.WORKLOAD_SHIFT_DETECTED}:
+                transitioned = await self._runs.transition(run_id, models.RunStatus.COMPLETED, models.RunCompletionReason.DEPLOYMENT_SUCCEEDED)
+            elif monitoring_result.status is MonitoringStatus.ROLLED_BACK:
+                transitioned = await self._runs.transition(run_id, models.RunStatus.ROLLED_BACK)
+            else:
+                transitioned = await self._runs.transition(run_id, models.RunStatus.ROLLBACK_BLOCKED)
+            return OrchestrationResult(OrchestrationOutcome.PROGRESSED, _run_status(transitioned["status"]))
         if status is not models.RunStatus.CREATED:
             raise OrchestrationInvariantError(f"unsupported durable orchestration resume state: {status.value}")
 
@@ -161,6 +210,18 @@ class OptimizationRunOrchestrator:
         execution_context.ensure_lease_owned()
         transitioned = await self._runs.transition(run_id, models.RunStatus.SNAPSHOTTING)
         return OrchestrationResult(OrchestrationOutcome.PROGRESSED, _run_status(transitioned["status"]))
+
+    async def _create_bound_approval(self, run: Mapping[str, object], authority: Mapping[str, object]) -> None:
+        assert self._approvals is not None
+        async with self._engine.connect() as connection:
+            action = (await connection.execute(select(models.CandidateAction.__table__).where(models.CandidateAction.__table__.c.candidate_id == authority["candidate_id"]))).mappings().one_or_none()
+        if action is None:
+            raise OrchestrationInvariantError("selected candidate has no typed action")
+        await self._approvals.request(
+            action_id=str(action["id"]), target_id=cast(UUID, run["target_id"]), candidate_id=cast(UUID, authority["candidate_id"]),
+            candidate_fingerprint=str(authority["candidate_fingerprint"]), evidence_hash=str(authority["integrity_fingerprint"]),
+            requester_id=cast(UUID, run["requested_by_user_id"]), optimization_run_id=cast(UUID, run["id"]),
+        )
 
     async def _validate_created(self, run_id: UUID, run: object) -> None:
         """Validate only persisted facts required before starting snapshot work."""

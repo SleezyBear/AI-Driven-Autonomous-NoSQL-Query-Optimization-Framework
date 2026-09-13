@@ -7,15 +7,15 @@ from uuid import uuid4
 
 import pytest
 
-from app.db.runtime import create_control_plane_engine
+from sqlalchemy.ext.asyncio import create_async_engine
 from app.production.target_lock import PostgresTargetMutationLock, target_lock_key
 
 
 @pytest.mark.asyncio
-async def test_two_independent_workers_only_one_obtains_target_authority() -> None:
+async def test_two_independent_workers_only_one_obtains_target_authority(disposable_worker_database: str) -> None:
     target_id = uuid4()
-    engine_a = create_control_plane_engine()
-    engine_b = create_control_plane_engine()
+    engine_a = create_async_engine(disposable_worker_database)
+    engine_b = create_async_engine(disposable_worker_database)
     worker_a = PostgresTargetMutationLock(engine_a)
     worker_b = PostgresTargetMutationLock(engine_b)
     first, second = await asyncio.gather(worker_a.try_acquire(target_id), worker_b.try_acquire(target_id))

@@ -10,7 +10,7 @@ import pytest
 import pytest_asyncio
 import jwt
 from fastapi.testclient import TestClient
-from sqlalchemy import delete, update
+from sqlalchemy import update
 
 os.environ.setdefault("JWT_SIGNING_KEY", "r4-test-signing-key-that-is-long-enough")
 
@@ -24,24 +24,16 @@ PASSWORD = "correct horse battery staple"
 
 
 @pytest.fixture
-def client() -> TestClient:
+def client(disposable_auth_database: str, monkeypatch: pytest.MonkeyPatch) -> TestClient:
+    monkeypatch.setenv("DATABASE_URL", disposable_auth_database)
     with TestClient(app) as test_client:
         yield test_client
 
 
 @pytest_asyncio.fixture(autouse=True)
-async def database_cleanup() -> None:
-    engine = create_control_plane_engine()
-    async with engine.begin() as connection:
-        await connection.execute(delete(models.RefreshToken.__table__))
-        await connection.execute(delete(models.AuditEvent.__table__).where(models.AuditEvent.event_type.like("AUTH_%")))
-        await connection.execute(delete(models.User.__table__).where(models.User.email.like("r4-%@example.com")))
+async def database_cleanup(disposable_auth_database: str, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("DATABASE_URL", disposable_auth_database)
     yield
-    async with engine.begin() as connection:
-        await connection.execute(delete(models.RefreshToken.__table__))
-        await connection.execute(delete(models.AuditEvent.__table__).where(models.AuditEvent.event_type.like("AUTH_%")))
-        await connection.execute(delete(models.User.__table__).where(models.User.email.like("r4-%@example.com")))
-    await engine.dispose()
 
 
 async def create_user(email: str, *, status: str = "ACTIVE") -> str:

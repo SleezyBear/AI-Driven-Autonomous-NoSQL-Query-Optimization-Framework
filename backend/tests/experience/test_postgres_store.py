@@ -11,17 +11,14 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from app.experience.memory import EMBEDDING_DIMENSIONS, ExperienceRecord, PostgresExperienceRepository
 
 
-DATABASE_URL = "postgresql+asyncpg://control_plane:control_plane_dev_only@127.0.0.1:5432/control_plane"
-
-
 def _vector(value: float) -> tuple[float, ...]:
     return (value,) * EMBEDDING_DIMENSIONS
 
 
 @pytest.mark.asyncio
-async def test_pgvector_experience_survives_restart_and_filters_action_family() -> None:
+async def test_pgvector_experience_survives_restart_and_filters_action_family(disposable_experience_database: str) -> None:
     marker = f"r17-{uuid4()}"
-    engine = create_async_engine(DATABASE_URL)
+    engine = create_async_engine(disposable_experience_database)
     try:
         repository = PostgresExperienceRepository(engine)
         stored_id = await repository.add(
@@ -50,7 +47,7 @@ async def test_pgvector_experience_survives_restart_and_filters_action_family() 
     finally:
         await engine.dispose()
 
-    restarted_engine = create_async_engine(DATABASE_URL)
+    restarted_engine = create_async_engine(disposable_experience_database)
     try:
         restarted = PostgresExperienceRepository(restarted_engine)
         matches = await restarted.nearest(_vector(1.0), "CREATE_INDEX", limit=10)

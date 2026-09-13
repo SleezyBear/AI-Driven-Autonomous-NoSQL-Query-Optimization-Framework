@@ -16,12 +16,9 @@ from app.runs.service import OptimizationRunCreationService
 from app.worker.durable import JobKind, JobRepository
 
 
-DATABASE_URL = "postgresql+asyncpg://control_plane:control_plane_dev_only@127.0.0.1:5432/control_plane"
-
-
 @pytest.mark.asyncio
-async def test_atomic_run_job_creation_and_restart_persistence() -> None:
-    engine = create_async_engine(DATABASE_URL)
+async def test_atomic_run_job_creation_and_restart_persistence(disposable_runs_database: str) -> None:
+    engine = create_async_engine(disposable_runs_database)
     marker = uuid4().hex
     try:
         async with engine.begin() as connection:
@@ -37,7 +34,7 @@ async def test_atomic_run_job_creation_and_restart_persistence() -> None:
     finally:
         await engine.dispose()
 
-    restarted = create_async_engine(DATABASE_URL)
+    restarted = create_async_engine(disposable_runs_database)
     try:
         assert await RunRepository(restarted).get(run_id) is not None
     finally:
@@ -56,8 +53,8 @@ def test_persisted_and_in_memory_lifecycle_enums_remain_identical() -> None:
 
 
 @pytest.mark.asyncio
-async def test_persisted_transition_and_primary_metric_guards() -> None:
-    engine = create_async_engine(DATABASE_URL)
+async def test_persisted_transition_and_primary_metric_guards(disposable_runs_database: str) -> None:
+    engine = create_async_engine(disposable_runs_database)
     marker = uuid4().hex
     try:
         async with engine.begin() as connection:
@@ -96,12 +93,12 @@ async def test_persisted_transition_and_primary_metric_guards() -> None:
 
 
 @pytest.mark.asyncio
-async def test_job_insert_failure_rolls_back_new_run() -> None:
+async def test_job_insert_failure_rolls_back_new_run(disposable_runs_database: str) -> None:
     class FailingJobs(JobRepository):
         async def enqueue(self, *args: object, **kwargs: object) -> str:
             raise RuntimeError("forced initial job failure")
 
-    engine = create_async_engine(DATABASE_URL)
+    engine = create_async_engine(disposable_runs_database)
     marker = uuid4().hex
     try:
         async with engine.begin() as connection:
@@ -119,8 +116,8 @@ async def test_job_insert_failure_rolls_back_new_run() -> None:
 
 
 @pytest.mark.asyncio
-async def test_postgres_partial_unique_index_rejects_duplicate_initial_job() -> None:
-    engine = create_async_engine(DATABASE_URL)
+async def test_postgres_partial_unique_index_rejects_duplicate_initial_job(disposable_runs_database: str) -> None:
+    engine = create_async_engine(disposable_runs_database)
     marker = uuid4().hex
     try:
         async with engine.begin() as connection:

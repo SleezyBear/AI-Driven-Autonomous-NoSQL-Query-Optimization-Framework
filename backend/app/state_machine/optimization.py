@@ -42,8 +42,8 @@ _NEXT_STATES: dict[OptimizationState, frozenset[OptimizationState]] = {
     OptimizationState.CALIBRATING: frozenset({OptimizationState.EVALUATING, OptimizationState.FAILED}),
     OptimizationState.EVALUATING: frozenset({OptimizationState.ADMISSION, OptimizationState.FAILED}),
     OptimizationState.ADMISSION: frozenset({OptimizationState.ADMITTED, OptimizationState.COMPLETED, OptimizationState.FAILED}),
-    OptimizationState.ADMITTED: frozenset({OptimizationState.APPROVAL_PENDING, OptimizationState.FAILED}),
-    OptimizationState.APPROVAL_PENDING: frozenset({OptimizationState.APPROVED, OptimizationState.FAILED}),
+    OptimizationState.ADMITTED: frozenset({OptimizationState.APPROVAL_PENDING, OptimizationState.APPROVED, OptimizationState.FAILED}),
+    OptimizationState.APPROVAL_PENDING: frozenset({OptimizationState.APPROVED, OptimizationState.COMPLETED, OptimizationState.FAILED}),
     OptimizationState.APPROVED: frozenset({OptimizationState.DEPLOYING, OptimizationState.FAILED}),
     OptimizationState.DEPLOYING: frozenset({OptimizationState.DEPLOYED, OptimizationState.FAILED}),
     OptimizationState.DEPLOYED: frozenset(

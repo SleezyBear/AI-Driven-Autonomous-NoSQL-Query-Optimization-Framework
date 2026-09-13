@@ -7,12 +7,12 @@ from uuid import uuid4
 import pytest
 from sqlalchemy import text
 
-from app.db.runtime import create_control_plane_engine
+from sqlalchemy.ext.asyncio import create_async_engine
 from app.recovery.durable import DurableRecovery
 
 
 @pytest.mark.asyncio
-async def test_restart_observes_exact_effect_and_never_creates_duplicate() -> None:
+async def test_restart_observes_exact_effect_and_never_creates_duplicate(disposable_recovery_database: str) -> None:
     key = f"r8-{uuid4()}"
     target_id = uuid4()
     created: list[str] = []
@@ -23,14 +23,14 @@ async def test_restart_observes_exact_effect_and_never_creates_duplicate() -> No
     async def create_index() -> None:
         created.append("orders_status_fingerprint")
 
-    first_engine = create_control_plane_engine()
+    first_engine = create_async_engine(disposable_recovery_database)
     first_worker = DurableRecovery(first_engine)
     await first_worker.record_intent(idempotency_key=key, action_id="create-index:orders_status", target_id=target_id, expected_fingerprint="orders_status_fingerprint")
     # Simulate MongoDB confirming the index, then kill the worker before it can confirm the workflow.
     await create_index()
     await first_engine.dispose()
 
-    second_engine = create_control_plane_engine()
+    second_engine = create_async_engine(disposable_recovery_database)
     second_worker = DurableRecovery(second_engine)
     assert await second_worker.execute_or_recover(idempotency_key=key, target_has_exact_effect=has_exact_effect, apply_mutation=create_index) == "EXECUTION_CONFIRMED"
     assert created == ["orders_status_fingerprint"]

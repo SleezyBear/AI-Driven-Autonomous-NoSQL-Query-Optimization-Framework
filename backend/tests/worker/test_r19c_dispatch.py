@@ -36,7 +36,7 @@ async def test_terminal_run_is_idempotent_and_nonterminal_requires_real_orchestr
     terminal = JobDispatcher(OptimizationJobHandler(_Repositories({"status": models.RunStatus.COMPLETED})))
     await terminal.dispatch(Job("j", "r", "OPTIMIZATION", {"run_id": "r"}, 1), ExecutionContext(asyncio.Event()))
     active = JobDispatcher(OptimizationJobHandler(_Repositories({"status": models.RunStatus.CREATED})))
-    with pytest.raises(PermanentJobError, match="ORCHESTRATION_UNAVAILABLE"):
+    with pytest.raises(PermanentJobError, match="DURABLE_ORCHESTRATOR_REQUIRED"):
         await active.dispatch(Job("j", "r", "OPTIMIZATION", {"run_id": "r"}, 1), ExecutionContext(asyncio.Event()))
 
 

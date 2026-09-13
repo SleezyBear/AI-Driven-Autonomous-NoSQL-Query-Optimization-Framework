@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from app.autonomy.policy import DeploymentMode
 from app.db.repositories import create_repositories
 from app.runs.service import OptimizationRunCreationService
+from app.runs.orchestrator import OptimizationRunOrchestrator
 from app.worker.durable import DurableJobWorker, JobRepository
 from app.worker.service import JobDispatcher, OptimizationJobHandler
 
@@ -83,7 +84,7 @@ async def test_terminal_runs_complete_job_idempotently_without_workflow(
 
 
 @pytest.mark.asyncio
-async def test_nonterminal_optimization_job_fails_permanently_without_orchestrator_and_recovers_same_row(
+async def test_nonterminal_optimization_job_fails_permanently_when_handler_is_misconfigured_without_orchestrator(
     disposable_worker_database: str,
 ) -> None:
     engine = create_async_engine(disposable_worker_database)
@@ -94,9 +95,47 @@ async def test_nonterminal_optimization_job_fails_permanently_without_orchestrat
         assert await DurableJobWorker(repository, "worker-a").run_once(dispatcher.dispatch)
         async with engine.connect() as connection:
             job = (await connection.execute(text("SELECT status,attempts,last_error_code,failed_at FROM jobs WHERE id=:id"), {"id": job_id})).mappings().one()
-            assert dict(job)["status"] == "FAILED" and dict(job)["attempts"] == 1 and dict(job)["last_error_code"] == "ORCHESTRATION_UNAVAILABLE" and dict(job)["failed_at"] is not None
+            assert dict(job)["status"] == "FAILED" and dict(job)["attempts"] == 1 and dict(job)["last_error_code"] == "DURABLE_ORCHESTRATOR_REQUIRED" and dict(job)["failed_at"] is not None
             assert (await connection.execute(text("SELECT status::text FROM optimization_runs WHERE id=:id"), {"id": run_id})).scalar_one() == "CREATED"
         assert await repository.claim("worker-b") is None
+    finally:
+        await _cleanup(engine, target, user)
+        await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_real_orchestrator_handler_completes_approval_waiting_job_without_retry(
+    disposable_worker_database: str,
+) -> None:
+    """A configured worker invokes the production orchestrator, not a stub."""
+    engine = create_async_engine(disposable_worker_database)
+    user, target, run_id, job_id = await _run_and_job(engine)
+    try:
+        # Approval is externally driven.  The job which reached this durable
+        # boundary completes cleanly and the approval service owns its one
+        # continuation job.
+        async with engine.begin() as connection:
+            await connection.execute(
+                text("UPDATE optimization_runs SET status='APPROVAL_PENDING'::run_status WHERE id=:id"),
+                {"id": run_id},
+            )
+        repositories = create_repositories(engine)
+        dispatcher = JobDispatcher(
+            OptimizationJobHandler(repositories, OptimizationRunOrchestrator(engine, repositories))
+        )
+        assert await DurableJobWorker(JobRepository(engine), "configured-worker").run_once(dispatcher.dispatch)
+        async with engine.connect() as connection:
+            job = (
+                await connection.execute(
+                    text("SELECT status, attempts, last_error_code FROM jobs WHERE id=:id"), {"id": job_id}
+                )
+            ).mappings().one()
+            assert dict(job) == {"status": "COMPLETED", "attempts": 1, "last_error_code": None}
+            assert (
+                await connection.scalar(
+                    text("SELECT status::text FROM optimization_runs WHERE id=:id"), {"id": run_id}
+                )
+            ) == "APPROVAL_PENDING"
     finally:
         await _cleanup(engine, target, user)
         await engine.dispose()

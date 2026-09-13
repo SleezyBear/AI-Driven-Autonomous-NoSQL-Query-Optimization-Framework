@@ -15,9 +15,6 @@ from app.runs.service import OptimizationRunCreationService
 from app.worker.durable import ExecutionContext
 
 
-DATABASE_URL = "postgresql+asyncpg://control_plane:control_plane_dev_only@127.0.0.1:5432/control_plane"
-
-
 async def _created_run(engine: object, *, mapping: bool = True) -> tuple[UUID, UUID, UUID, UUID]:
     marker = uuid4().hex
     async with engine.begin() as connection:  # type: ignore[union-attr]
@@ -45,8 +42,8 @@ async def _cleanup(engine: object, user: UUID, monitored: UUID, evaluation: UUID
 
 
 @pytest.mark.asyncio
-async def test_created_run_advances_to_snapshotting_and_blocks_without_completed_telemetry() -> None:
-    engine = create_async_engine(DATABASE_URL)
+async def test_created_run_advances_to_snapshotting_and_blocks_without_completed_telemetry(disposable_runs_database: str) -> None:
+    engine = create_async_engine(disposable_runs_database)
     user, monitored, evaluation, run_id = await _created_run(engine)
     try:
         orchestrator = OptimizationRunOrchestrator(engine)
@@ -62,8 +59,8 @@ async def test_created_run_advances_to_snapshotting_and_blocks_without_completed
 
 
 @pytest.mark.asyncio
-async def test_created_run_without_distinct_mapping_fails_closed_without_transition() -> None:
-    engine = create_async_engine(DATABASE_URL)
+async def test_created_run_without_distinct_mapping_fails_closed_without_transition(disposable_runs_database: str) -> None:
+    engine = create_async_engine(disposable_runs_database)
     user, monitored, evaluation, run_id = await _created_run(engine, mapping=False)
     try:
         with pytest.raises(OrchestrationInvariantError, match="valid distinct evaluation target"):
@@ -76,8 +73,8 @@ async def test_created_run_without_distinct_mapping_fails_closed_without_transit
 
 
 @pytest.mark.asyncio
-async def test_lease_loss_before_created_transition_prevents_transition() -> None:
-    engine = create_async_engine(DATABASE_URL)
+async def test_lease_loss_before_created_transition_prevents_transition(disposable_runs_database: str) -> None:
+    engine = create_async_engine(disposable_runs_database)
     user, monitored, evaluation, run_id = await _created_run(engine)
     lost = asyncio.Event()
     lost.set()

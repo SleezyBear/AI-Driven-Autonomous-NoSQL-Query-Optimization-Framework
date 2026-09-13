@@ -1,7 +1,7 @@
 PYTHON := ./nosql/bin/python
 PIP := ./nosql/bin/python -m pip
 
-.PHONY: preflight wheel-test phase0-acceptance phase-r0-acceptance phase-r1-acceptance phase-r2-acceptance phase-r3-acceptance phase-r4-acceptance phase-r5-acceptance phase-r6-acceptance phase-r7-acceptance phase-r8-acceptance phase-r9-acceptance phase-r10-acceptance phase-r11-acceptance phase-r12-acceptance phase-r13-acceptance phase-r14-acceptance phase-r15-acceptance phase-r16-acceptance phase-r17-acceptance phase-r18-acceptance r19b-acceptance r19c-docker-worker r19c-acceptance r19d-acceptance r19e-acceptance r19f-acceptance r19gk-real-ai r19gk-acceptance phase15-acceptance pip-check test dev replica-test-env paper-env acceptance nosqlbench-smoke safetybench phase43-acceptance phase44-acceptance phase45-acceptance phase46-acceptance phase47-acceptance phase48-acceptance phase49-acceptance phase50-acceptance phase51-acceptance phase52-acceptance phase53-acceptance phase54-acceptance phase55-acceptance demo-reset demo-start demo-seed demo-workload
+.PHONY: preflight wheel-test phase0-acceptance phase-r0-acceptance phase-r1-acceptance phase-r2-acceptance phase-r3-acceptance phase-r4-acceptance phase-r5-acceptance phase-r6-acceptance phase-r7-acceptance phase-r8-acceptance phase-r9-acceptance phase-r10-acceptance phase-r11-acceptance phase-r12-acceptance phase-r13-acceptance phase-r14-acceptance phase-r15-acceptance phase-r16-acceptance phase-r17-acceptance phase-r18-acceptance r19b-acceptance r19c-docker-worker r19c-acceptance r19d-acceptance r19e-acceptance r19f-acceptance r19gk-real-ai r19gk-acceptance r19lp-acceptance phase15-acceptance pip-check test dev replica-test-env paper-env acceptance nosqlbench-smoke safetybench phase43-acceptance phase44-acceptance phase45-acceptance phase46-acceptance phase47-acceptance phase48-acceptance phase49-acceptance phase50-acceptance phase51-acceptance phase52-acceptance phase53-acceptance phase54-acceptance phase55-acceptance demo-reset demo-start demo-seed demo-workload
 
 preflight:
 	$(PIP) check
@@ -189,6 +189,18 @@ r19gk-acceptance:
 	$(PYTHON) -m ruff check backend
 	MYPYPATH=backend $(PYTHON) -m mypy backend/app
 	$(PIP) check
+
+r19lp-acceptance:
+	docker compose --profile light up -d --wait postgres mongo-monitored mongo-evaluation
+	$(PYTHON) -m alembic -c backend/alembic.ini upgrade head
+	DATABASE_URL='postgresql+asyncpg://control_plane:control_plane_dev_only@127.0.0.1:5432/r19lp_acceptance_guard' JWT_SIGNING_KEY='r19lp-acceptance-signing-key-that-is-long-enough' $(PYTHON) -m pytest backend/tests/production backend/tests/approvals backend/tests/worker backend/tests/monitoring backend/tests/recovery backend/tests/ledger
+	$(PYTHON) scripts/check_r19b_migrations.py
+	$(MAKE) r19gk-real-ai
+	DATABASE_URL='postgresql+asyncpg://control_plane:control_plane_dev_only@127.0.0.1:5432/r19lp_acceptance_guard' JWT_SIGNING_KEY='r19lp-acceptance-signing-key-that-is-long-enough' $(PYTHON) -m pytest backend/tests
+	$(PYTHON) -m ruff check backend
+	MYPYPATH=backend $(PYTHON) -m mypy backend/app
+	$(PIP) check
+	git diff --check
 
 phase15-acceptance:
 	$(PYTHON) scripts/phase15_acceptance.py

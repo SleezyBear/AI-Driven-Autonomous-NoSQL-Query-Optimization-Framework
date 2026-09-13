@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from inspect import isawaitable
 from typing import Any, Protocol, cast
 
 from app.adapters.contracts import DatabaseAdapter, IndexSpec, Namespace, QuerySettingsIndexHint
@@ -58,6 +59,8 @@ class MongoDBAdapter(DatabaseAdapter):
 
     async def list_indexes(self, namespace: Namespace) -> tuple[IndexSpec, ...]:
         cursor = self._database.get_collection(namespace.collection).list_indexes()
+        if isawaitable(cursor):
+            cursor = await cursor
         documents = [document async for document in cursor]
         return tuple(
             IndexSpec(
@@ -79,6 +82,8 @@ class MongoDBAdapter(DatabaseAdapter):
         self, namespace: Namespace, query_shape_hash: str
     ) -> QuerySettingsIndexHint | None:
         cursor = self._database.aggregate([{"$querySettings": {}}])
+        if isawaitable(cursor):
+            cursor = await cursor
         settings_documents = [document async for document in cursor]
         matching = [
             document

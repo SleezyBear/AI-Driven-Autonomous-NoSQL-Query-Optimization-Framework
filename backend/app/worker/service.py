@@ -7,12 +7,13 @@ import os
 import signal
 import socket
 import sys
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import structlog
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.db import models
+from app.runs.orchestrator import OrchestrationInvariantError, OrchestrationOutcome, OptimizationRunOrchestrator
 from app.db.runtime import create_control_plane_repositories
 from app.worker.durable import DurableJobWorker, ExecutionContext, Job, JobKind, JobRepository, LeaseLostError, PermanentJobError
 
@@ -22,10 +23,11 @@ _log = structlog.get_logger("worker")
 
 
 class OptimizationJobHandler:
-    """Validate an authoritative run/job relationship; never fake orchestration."""
+    """Validate an authoritative job then call the real durable orchestrator."""
 
-    def __init__(self, repositories: object) -> None:
+    def __init__(self, repositories: object, orchestrator: OptimizationRunOrchestrator | None = None) -> None:
         self._repositories = repositories
+        self._orchestrator = orchestrator
 
     async def handle(self, job: Job, context: ExecutionContext) -> None:
         if job.optimization_run_id is None:
@@ -39,9 +41,18 @@ class OptimizationJobHandler:
         if run["status"] in TERMINAL:
             return
         context.ensure_lease_owned()
-        # The current DiagnosisPipeline is callback/in-memory scaffolding, not a
-        # durable orchestration service. Do not manufacture lifecycle progress.
-        raise PermanentJobError("ORCHESTRATION_UNAVAILABLE")
+        if self._orchestrator is None:
+            raise PermanentJobError("DURABLE_ORCHESTRATOR_REQUIRED")
+        try:
+            result = await self._orchestrator.run(UUID(job.optimization_run_id), context)
+        except OrchestrationInvariantError as error:
+            raise PermanentJobError("ORCHESTRATION_INVARIANT_FAILURE") from error
+        if result.outcome is OrchestrationOutcome.BLOCKED:
+            if result.status is models.RunStatus.APPROVAL_PENDING:
+                # The current job is intentionally complete while an external
+                # approver controls the sole continuation job.
+                return
+            raise RuntimeError(result.blocker or "ORCHESTRATION_TRANSIENT_BLOCK")
 
 
 class JobDispatcher:
@@ -124,7 +135,7 @@ async def main() -> None:
         loop.add_signal_handler(signum, stopping.set)
     service = WorkerService(
         DurableJobWorker(JobRepository(engine), identity),
-        JobDispatcher(OptimizationJobHandler(repositories)),
+        JobDispatcher(OptimizationJobHandler(repositories, OptimizationRunOrchestrator(engine, repositories))),
         poll_interval=float(os.getenv("WORKER_POLL_INTERVAL_SECONDS", "1")),
         identity=identity,
     )
