@@ -1,6 +1,7 @@
 import { FormEvent, useState } from "react";
 import { Link, Route, Routes, useNavigate } from "react-router-dom";
 import ResourcePage from "./api/ResourcePage";
+import { CreateRunPage, RunDetailPage, RunsPage } from "./runs/LiveRuns";
 import type { ApiPath } from "./api/openapi.generated";
 
 const pages: readonly [string, string, ApiPath][] = [
@@ -28,5 +29,5 @@ function Login() {
 }
 
 export default function App() {
-  return <><nav className="border-b border-slate-200 bg-white px-6 py-3 text-sm font-medium"><div className="mx-auto flex max-w-6xl flex-wrap gap-5">{pages.map(([label, to]) => <Link className="text-slate-700 hover:text-blue-700" key={to} to={to}>{label}</Link>)}<Link className="text-slate-700 hover:text-blue-700" to="/login">Login</Link></div></nav><Routes><Route path="/login" element={<Login />} />{pages.map(([title, route, path]) => <Route element={<ResourcePage title={title} path={path} />} key={route} path={route} />)}<Route element={<ResourcePage title="Target" path="/api/v1/targets" />} path="/targets/:id" /><Route element={<ResourcePage title="Run" path="/api/v1/runs" />} path="/runs/:id" /></Routes></>;
+  return <><nav className="border-b border-slate-200 bg-white px-6 py-3 text-sm font-medium"><div className="mx-auto flex max-w-6xl flex-wrap gap-5">{pages.map(([label, to]) => <Link className="text-slate-700 hover:text-blue-700" key={to} to={to}>{label}</Link>)}<Link className="text-slate-700 hover:text-blue-700" to="/login">Login</Link></div></nav><Routes><Route path="/login" element={<Login />} /><Route path="/runs" element={<RunsPage />} /><Route path="/runs/new" element={<CreateRunPage />} /><Route path="/runs/:id" element={<RunDetailPage />} />{pages.filter(([, route]) => route !== "/runs").map(([title, route, path]) => <Route element={<ResourcePage title={title} path={path} />} key={route} path={route} />)}<Route element={<ResourcePage title="Target" path="/api/v1/targets" />} path="/targets/:id" /></Routes></>;
 }

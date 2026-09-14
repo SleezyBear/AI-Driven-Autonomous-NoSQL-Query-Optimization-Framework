@@ -89,11 +89,18 @@ Phase progression is strictly one phase at a time: implement, run its test and p
 
 ## R19D corrective record
 
-- Result: INCOMPLETE — FAIL_CLOSED. R19 remains INCOMPLETE.
+- Historical result: INCOMPLETE — FAIL_CLOSED. Superseded by the accepted R19L–P and R19Q–S completion chain.
 - Verification: `backend/tests/runs/test_orchestrator_created.py` — 3 real-PostgreSQL tests passed; Ruff and mypy passed.
 - Implemented boundary: `OptimizationRunOrchestrator` reloads the authoritative run, validates persisted target/evaluation mapping/deployment-mode/initial-job facts, lease-checks, and transitions only `CREATED → SNAPSHOTTING`. Terminal runs are not restarted.
 - Historical stop condition: this R19D component returns `WORKLOAD_SNAPSHOT_SERVICE_MISSING` at `SNAPSHOTTING`; later R19E–K work is deliberately not wired through that worker path.
 - Current blocker: `backend/app/worker/service.py` does not yet claim and dispatch `OPTIMIZATION` jobs through the real optimization workflow. Approval, production deployment, monitoring, and rollback remain excluded.
+
+## R19 final completion record
+
+- Result: COMPLETE — INTEGRATION_PASS.
+- Verification: `make r19-acceptance` exited `0`.
+- Result details: authenticated run and approval API tests passed (20 tests); frontend live-run tests (6 tests) and production build passed; the accepted R19L–P durable/real-provider regression chain completed with 281 backend tests passed and 3 deliberate real-provider skips; Ruff, mypy (103 source files), `pip check`, generated API types, and `git diff --check` passed.
+- Safety: development PostgreSQL/Mongo data, snapshots, jobs, and Docker volumes were not reset or deleted. Disposable databases alone were created and removed by guarded test fixtures.
 
 ## R19E, R19F, and R19G–K corrective record
 

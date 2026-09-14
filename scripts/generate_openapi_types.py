@@ -14,12 +14,17 @@ OUTPUT = ROOT / "frontend/src/api/openapi.generated.ts"
 sys.path.insert(0, str(BACKEND))
 
 from app.main import app  # noqa: E402
+from app.api.routes import ApiGroup  # noqa: E402
 
 
 def render() -> str:
     """Render stable TypeScript paths and the documented group response."""
-    paths = tuple(sorted(path for path in app.openapi()["paths"] if path.startswith("/api/v1/")))
-    groups = tuple(path.rsplit("/", 1)[1] for path in paths)
+    documented = app.openapi()["paths"]
+    # The lightweight generated client is intentionally only for paginated
+    # collection reads.  Command and identifier routes have dedicated typed
+    # functions in frontend/src/api/client.ts.
+    groups = tuple(sorted(group.value for group in ApiGroup))
+    paths = tuple(f"/api/v1/{group}" for group in groups if f"/api/v1/{group}" in documented)
     group_union = " | ".join(f'"{group}"' for group in groups)
     path_union = " | ".join(f'"{path}"' for path in paths)
     return "\n".join(
