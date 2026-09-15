@@ -2,19 +2,21 @@
 
 from __future__ import annotations
 
-import os
-
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
 from app.db.repositories import ControlPlaneRepositories, create_repositories
-
-
-LOCAL_DATABASE_URL = "postgresql+asyncpg://control_plane:control_plane_dev_only@127.0.0.1:5432/control_plane"
+from app.runtime import runtime_settings
 
 
 def create_control_plane_engine() -> AsyncEngine:
     """Create the process-local engine whose state is durably in PostgreSQL."""
-    return create_async_engine(os.environ.get("DATABASE_URL", LOCAL_DATABASE_URL), pool_pre_ping=True)
+    settings = runtime_settings()
+    return create_async_engine(
+        settings.database_url, pool_pre_ping=True, pool_size=settings.pool_size,
+        max_overflow=settings.max_overflow, pool_timeout=settings.pool_timeout_seconds,
+        pool_recycle=settings.pool_recycle_seconds,
+        connect_args={"server_settings": {"statement_timeout": str(settings.statement_timeout_ms), "lock_timeout": str(settings.lock_timeout_ms)}},
+    )
 
 
 def create_control_plane_repositories() -> tuple[AsyncEngine, ControlPlaneRepositories]:

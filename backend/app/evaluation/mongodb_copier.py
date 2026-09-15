@@ -9,6 +9,8 @@ from typing import Any
 
 from pymongo import MongoClient
 
+from app.mongodb.client import create_mongo_client
+
 from app.evaluation.sandbox import EvaluationState
 
 
@@ -27,7 +29,7 @@ class MongoEvaluationStateCopier:
         return await asyncio.to_thread(self._copy_and_verify)
 
     def _copy_and_verify(self) -> EvaluationState:
-        with MongoClient(self._monitored_uri, serverSelectionTimeoutMS=5_000) as monitored_client, MongoClient(self._evaluation_uri, serverSelectionTimeoutMS=5_000) as evaluation_client:
+        with create_mongo_client(self._monitored_uri, local_development=True) as monitored_client, create_mongo_client(self._evaluation_uri, local_development=True) as evaluation_client:
             monitored = monitored_client[self._database_name]
             evaluation = evaluation_client[self._database_name]
             source_state = _state(monitored_client, monitored)
