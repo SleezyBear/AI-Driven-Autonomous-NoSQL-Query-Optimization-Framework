@@ -14,4 +14,5 @@ benchmarks/results/
 frontend/playwright-report/
 # Project-local tooling downloads (for example, the isolated uv binary).
 .tools/
+/artifacts/generated/
 .r3-restart-state.json

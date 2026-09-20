@@ -1,6 +1,6 @@
 import type { ApiGetResponses, ApiPath } from "./openapi.generated";
 
-const API_BASE = "http://localhost:8000";
+const API_BASE = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "";
 
 export type RunSummary = {
   run_id: string; target_id: string; status: string; deployment_mode: string;

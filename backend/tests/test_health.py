@@ -18,6 +18,7 @@ def test_live_health_endpoint() -> None:
 def test_ready_health_endpoint() -> None:
     response = client.get("/health/ready")
 
-    assert response.status_code == 200
-    assert response.json() == {"status": "ready"}
-
+    # A client that bypasses application lifespan has no authoritative
+    # PostgreSQL dependency and must fail closed.
+    assert response.status_code == 503
+    assert response.json() == {"status": "not_ready"}

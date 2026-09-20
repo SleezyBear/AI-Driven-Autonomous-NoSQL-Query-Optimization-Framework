@@ -6,7 +6,12 @@ import re
 from typing import Any
 
 _SENSITIVE_KEY = re.compile(r"(authorization|cookie|password|access[_-]?token|refresh[_-]?token|aes|jwt|secret|key)", re.I)
-_URI_CREDENTIALS = re.compile(r"(mongodb(?:\+srv)?://[^:/?#\s]+:)([^@/?#\s]+)(@)", re.I)
+_URI_CREDENTIALS = re.compile(
+    r"((?:mongodb(?:\+srv)?|postgres(?:ql)?(?:\+asyncpg)?)://[^:/?#\s]+:)([^@/?#\s]+)(@)",
+    re.I,
+)
+_BEARER = re.compile(r"(?i)\bBearer\s+[A-Za-z0-9._~+/=-]+")
+_JWT = re.compile(r"\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b")
 
 
 def redact_value(value: Any, key: str | None = None) -> Any:
@@ -25,5 +30,7 @@ def redact_value(value: Any, key: str | None = None) -> Any:
 
 
 def redact_connection_uri(value: str) -> str:
-    """Remove passwords from MongoDB-style connection URIs wherever they occur."""
-    return _URI_CREDENTIALS.sub(r"\1[REDACTED]\3", value)
+    """Remove passwords and bearer/JWT tokens wherever they occur."""
+    redacted = _URI_CREDENTIALS.sub(r"\1[REDACTED]\3", value)
+    redacted = _BEARER.sub("Bearer [REDACTED]", redacted)
+    return _JWT.sub("[REDACTED]", redacted)

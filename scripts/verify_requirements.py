@@ -9,7 +9,8 @@ import sys
 
 
 REQUIRED_PINS = {
-    "fastapi": "0.112.2",
+    "fastapi": "0.133.0",
+    "starlette": "1.3.1",
     "uvicorn": "0.30.6",
     "pydantic": "2.8.2",
     "pydantic-core": "2.20.1",
@@ -24,17 +25,18 @@ REQUIRED_PINS = {
     "httpx": "0.27.2",
     "numpy": "1.26.4",
     "scipy": "1.12.0",
-    "cryptography": "42.0.8",
+    "cryptography": "50.0.0",
     "argon2-cffi": "23.1.0",
-    "PyJWT": "2.9.0",
+    "PyJWT": "2.13.0",
     "tenacity": "9.0.0",
     "structlog": "24.4.0",
     "prometheus-client": "0.20.0",
-    "pytest": "8.3.3",
-    "pytest-asyncio": "0.24.0",
+    "pytest": "9.0.3",
+    "pytest-asyncio": "1.3.0",
     "pytest-cov": "5.0.0",
     "ruff": "0.6.9",
     "mypy": "1.11.2",
+    "pip-audit": "2.9.0",
 }
 
 

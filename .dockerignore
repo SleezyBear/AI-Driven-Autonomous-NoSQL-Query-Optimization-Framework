@@ -1,0 +1,11 @@
+.git
+.env
+.secrets
+nosql
+frontend/node_modules
+frontend/dist
+frontend/test-results
+frontend/playwright-report
+.dependency-wheel-test
+**/__pycache__
+**/*.pyc

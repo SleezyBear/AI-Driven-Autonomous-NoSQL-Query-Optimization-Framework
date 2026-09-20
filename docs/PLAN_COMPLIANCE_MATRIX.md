@@ -5,6 +5,31 @@ It deliberately does not derive completion from `PHASE_STATUS.md`. The historica
 test evidence is retained there; this matrix records whether the promised system
 was actually implemented as of remediation R0.
 
+## R20–R23 hardening completion
+
+R20, R21, R22, and R23 are **COMPLETE — INTEGRATION_PASS**. The authoritative
+`make r20r23-acceptance` composite returned 0 on 2026-09-20. It proved
+fail-closed production configuration, dependency-backed readiness, bounded and
+non-root runtime containers, structured/redacted observability, deterministic
+hash-locked dependency reconstruction, zero-finding Python/npm audits, two
+CycloneDX SBOMs, reviewed secret classifications with zero real secrets, and
+safe provenance capture.
+
+The same run proved bounded PostgreSQL pooling and timeouts, advisory-locked
+concurrent migrations, fresh/prior migration paths, operational indexes,
+backup/restore integrity, and outage recovery. MongoDB evidence covered the
+central client policy, strict TLS trust/failure, isolated least-privilege
+authorization, replica-set topology and election recovery, and durable outage
+reconciliation. Final regression was 288 backend tests passed with 3 intentional
+real-provider skips, 6 frontend tests and production build, Ruff, strict mypy
+over 106 source files, `pip check`, generated API types, and `git diff --check`.
+
+This completion does not change the frozen architecture, statistics, action
+policy, or deployment authority and does not production-qualify the whole
+project. R24–R28 remain unstarted. The detailed evidence and residual risks are
+in `R20_R23_HARDENING_AUDIT.md`. Older corrective sections below are retained as
+historical progression records.
+
 ## R19B corrective completion
 
 R19B is **COMPLETE** as an integration-correctness slice: migration `0011` persists the

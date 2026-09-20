@@ -1,7 +1,7 @@
 PYTHON := ./nosql/bin/python
 PIP := ./nosql/bin/python -m pip
 
-.PHONY: preflight wheel-test phase0-acceptance phase-r0-acceptance phase-r1-acceptance phase-r2-acceptance phase-r3-acceptance phase-r4-acceptance phase-r5-acceptance phase-r6-acceptance phase-r7-acceptance phase-r8-acceptance phase-r9-acceptance phase-r10-acceptance phase-r11-acceptance phase-r12-acceptance phase-r13-acceptance phase-r14-acceptance phase-r15-acceptance phase-r16-acceptance phase-r17-acceptance phase-r18-acceptance r19b-acceptance r19c-docker-worker r19c-acceptance r19d-acceptance r19e-acceptance r19f-acceptance r19gk-real-ai r19gk-acceptance r19lp-acceptance r19-acceptance phase15-acceptance pip-check test dev replica-test-env paper-env acceptance nosqlbench-smoke safetybench phase43-acceptance phase44-acceptance phase45-acceptance phase46-acceptance phase47-acceptance phase48-acceptance phase49-acceptance phase50-acceptance phase51-acceptance phase52-acceptance phase53-acceptance phase54-acceptance phase55-acceptance demo-reset demo-start demo-seed demo-workload
+.PHONY: preflight wheel-test phase0-acceptance phase-r0-acceptance phase-r1-acceptance phase-r2-acceptance phase-r3-acceptance phase-r4-acceptance phase-r5-acceptance phase-r6-acceptance phase-r7-acceptance phase-r8-acceptance phase-r9-acceptance phase-r10-acceptance phase-r11-acceptance phase-r12-acceptance phase-r13-acceptance phase-r14-acceptance phase-r15-acceptance phase-r16-acceptance phase-r17-acceptance phase-r18-acceptance r19b-acceptance r19c-docker-worker r19c-acceptance r19d-acceptance r19e-acceptance r19f-acceptance r19gk-real-ai r19gk-acceptance r19lp-acceptance r19-acceptance r20r23-acceptance phase15-acceptance pip-check test dev replica-test-env paper-env acceptance nosqlbench-smoke safetybench phase43-acceptance phase44-acceptance phase45-acceptance phase46-acceptance phase47-acceptance phase48-acceptance phase49-acceptance phase50-acceptance phase51-acceptance phase52-acceptance phase53-acceptance phase54-acceptance phase55-acceptance demo-reset demo-start demo-seed demo-workload
 
 preflight:
 	$(PIP) check
@@ -211,6 +211,9 @@ r19-acceptance:
 	docker run --rm --platform linux/amd64 -v "$(CURDIR)/frontend:/app" -w /app node:22.14.0-alpine npm run build
 	$(MAKE) r19lp-acceptance
 	git diff --check
+
+r20r23-acceptance:
+	bash scripts/run_r20r23_acceptance.sh
 
 phase15-acceptance:
 	$(PYTHON) scripts/phase15_acceptance.py

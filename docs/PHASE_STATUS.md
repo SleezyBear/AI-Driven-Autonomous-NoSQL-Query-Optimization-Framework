@@ -102,6 +102,34 @@ Phase progression is strictly one phase at a time: implement, run its test and p
 - Result details: authenticated run and approval API tests passed (20 tests); frontend live-run tests (6 tests) and production build passed; the accepted R19L–P durable/real-provider regression chain completed with 281 backend tests passed and 3 deliberate real-provider skips; Ruff, mypy (103 source files), `pip check`, generated API types, and `git diff --check` passed.
 - Safety: development PostgreSQL/Mongo data, snapshots, jobs, and Docker volumes were not reset or deleted. Disposable databases alone were created and removed by guarded test fixtures.
 
+## R20–R23 hardening completion record
+
+- R20 result: **COMPLETE — INTEGRATION_PASS**. Fail-closed environment/secret
+  validation, hosts/CORS/request bounds, truthful liveness/readiness, safe
+  structured logs and Prometheus metrics, non-root read-only containers,
+  loopback port policy, frontend reverse proxy/security headers, and graceful
+  shutdown passed.
+- R21 result: **COMPLETE — INTEGRATION_PASS**. Hash-locked Python and npm
+  reconstruction passed under Python 3.12.14 x86_64 and Node 22.14.0; current
+  Python/npm audits found zero vulnerabilities; backend/frontend CycloneDX
+  inventories, value-safe secret review with zero real secrets, and provenance
+  were generated.
+- R22 result: **COMPLETE — INTEGRATION_PASS**. Bounded PostgreSQL pool/timeouts,
+  advisory-locked migrations, fresh/prior/concurrent upgrades, operational
+  indexes, isolated backup/restore integrity, and outage recovery passed.
+- R23 result: **COMPLETE — INTEGRATION_PASS**. Central bounded Mongo clients,
+  strict production TLS/topology/auth policy, trusted/untrusted certificate
+  behavior, least-privilege executor denial, replica election recovery, and
+  outage/restart reconciliation passed.
+- Verification: `make r20r23-acceptance` exited `0` on 2026-09-20. Final
+  regression passed 288 backend tests with 3 intentional real-provider skips,
+  6 frontend tests and the production build, Ruff, strict mypy across 106 source
+  files, `pip check`, generated API types, and `git diff --check`.
+- Safety/scope: only uniquely named disposable containers, databases, and
+  temporary certificates/secrets were removed. Development PostgreSQL/Mongo
+  data, snapshots, jobs, namespaces, and Docker volumes remained untouched.
+  R24–R28 remain unstarted; the project is not yet production-qualified.
+
 ## R19E, R19F, and R19G–K corrective record
 
 - Result: COMPLETE — INTEGRATION_PASS. R19 itself remains INCOMPLETE.
