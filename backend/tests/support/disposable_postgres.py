@@ -16,7 +16,10 @@ from sqlalchemy.ext.asyncio import create_async_engine
 
 _PREFIX = "nosql_test_worker_"
 _SAFE_NAME = re.compile(r"^nosql_test_worker_[a-z0-9_]+$")
-_SERVER_URL = "postgresql+asyncpg://control_plane:control_plane_dev_only@127.0.0.1:5432/postgres"
+_SERVER_URL = os.environ.get(
+    "TEST_POSTGRES_SERVER_URL",
+    "postgresql+asyncpg://control_plane:control_plane_dev_only@127.0.0.1:5432/postgres",
+)
 _ROOT = Path(__file__).resolve().parents[3]
 
 

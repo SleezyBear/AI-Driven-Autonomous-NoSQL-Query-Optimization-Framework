@@ -128,7 +128,58 @@ Phase progression is strictly one phase at a time: implement, run its test and p
 - Safety/scope: only uniquely named disposable containers, databases, and
   temporary certificates/secrets were removed. Development PostgreSQL/Mongo
   data, snapshots, jobs, namespaces, and Docker volumes remained untouched.
-  R24–R28 remain unstarted; the project is not yet production-qualified.
+  R24–R27 qualification is recorded below. R28 remains outstanding.
+
+## R24–R27 qualification completion record
+
+| Phase | Scope | Status | Observable test |
+| --- | --- | --- | --- |
+| R24 | Real no-mock optimization lifecycle | **COMPLETE — SYSTEM_PASS** | `PYTHONPATH=backend ./nosql/bin/python scripts/r24_system_acceptance.py` |
+| R25 | Adversarial, security, statistical, failure, and replica-partition qualification | **COMPLETE — INTEGRATION_PASS** | R25 adversarial suite plus `PYTHONPATH=backend ./nosql/bin/python scripts/r25_replica_partition.py` |
+| R26 | Concurrency, distributed locking, load, and soak qualification | **COMPLETE — INTEGRATION_PASS** | R26 concurrency suite plus `PYTHONPATH=backend ./nosql/bin/python scripts/r26_load_soak.py --duration 60` |
+| R27 | Autonomy readiness, predeployment revalidation, monitoring, rollback, and experience authority | **COMPLETE — INTEGRATION_PASS** | `./nosql/bin/python -m pytest backend/tests/autonomy backend/tests/production backend/tests/monitoring backend/tests/experience backend/tests/rollback backend/tests/reversion` |
+
+- **R24 evidence:** persisted `artifacts/generated/r24-system.json` records
+  `SYSTEM_PASS` for all eight required real lifecycle paths. The acceptance used
+  real PostgreSQL, MongoDB, Ollama, API, worker, statistical admission,
+  authority, deployment, monitoring, rollback, and optimizer-owned query
+  settings. The eight outcomes covered `NO_CANDIDATES`,
+  `NO_ADMITTED_CANDIDATE`, `APPROVAL_REJECTED`, approval-controlled deployment
+  success, autonomous deployment success, autonomy-ineligible fallback to
+  `APPROVAL_PENDING`, monitoring regression to `ROLLED_BACK`, and drift-safe
+  `ROLLBACK_BLOCKED`. The real-stack Playwright suite passed 3/3.
+- **R25 evidence:** the adversarial/security/statistical qualification suite
+  passed 129 tests. The isolated three-member replica-set partition/election
+  qualification passed secondary loss, primary election, majority-loss
+  fail-closed behavior, restoration, and exactly-one durable reconciliation;
+  `artifacts/generated/r25-network-partition.json` records `PASS`.
+- **R26 evidence:** concurrency qualification passed 27 tests. The 60-second
+  qualification soak recorded 4,444 API samples with zero failures, p95
+  90.83 ms, maximum 11 PostgreSQL connections and 9 MongoDB connections, one
+  shared Mongo client, asyncio tasks returning 1→1, and Mongo connections
+  returning 4→4. `artifacts/generated/r26-soak.json` records `PASS`.
+- **R27 evidence:** the explicit post-fix qualification recheck passed 46/46
+  tests across autonomy, production, monitoring, experience, rollback, and
+  reversion.
+- **Regression closure:** the original all-in-one R24–R27 run reached the final
+  backend regression but exposed an acceptance-harness configuration defect:
+  three live-Mongo integration tests fell back to `127.0.0.1:27017` instead of
+  the gate's dynamically allocated isolated MongoDB. The harness now exports
+  `MONITORED_MONGODB_URI`, and the durable-snapshot integration test honors the
+  existing `R19LP_PRODUCTION_TEST_MONGODB_URI`. An isolated tail-recovery run
+  then passed those 3/3 tests, the R27 46/46 recheck, the complete backend
+  regression with 328 passed and 3 intentional real-provider skips, Ruff,
+  strict mypy across 109 source files, generated OpenAPI type freshness,
+  frontend 9/9 tests and production build, the system-pass registry check, and
+  `git diff --check`.
+- **Acceptance-recording note:** the post-fix evidence above is a recovered
+  constituent closure; it does not claim that a subsequent monolithic
+  `make r24r27-acceptance` invocation itself exited zero.
+- **Safety:** only uniquely owned disposable qualification infrastructure was
+  used and removed. Development PostgreSQL/MongoDB data, snapshots, jobs,
+  namespaces, human-owned Mongo state, and development Docker volumes were not
+  reset or deleted.
+- **Remaining scope:** R28 research/reproducibility closure remains outstanding.
 
 ## R19E, R19F, and R19G–K corrective record
 

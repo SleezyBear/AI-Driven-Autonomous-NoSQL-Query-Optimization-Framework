@@ -46,6 +46,7 @@ class Page(BaseModel):
 class TargetCreate(BaseModel):
     name: str = Field(min_length=1, max_length=128)
     connection_label: str = Field(min_length=1, max_length=256)
+    deployment_mode: DeploymentMode = DeploymentMode.APPROVAL_CONTROLLED
 
 
 class RunCreate(BaseModel):
@@ -254,7 +255,34 @@ async def get_run(run_id: UUID, request: Request, principal: Principal = Depends
         run = (await connection.execute(select(models.OptimizationRun.__table__).where(models.OptimizationRun.__table__.c.id == run_id))).mappings().one_or_none()
         if run is None:
             raise HTTPException(status_code=404, detail="Run not found.")
-        await _authorized_target(request, run["target_id"], principal)
+        approver_access = None
+        if principal.role is Role.APPROVER:
+            approver_access = await connection.scalar(
+                select(models.ApprovalRequest.__table__.c.id).where(
+                    models.ApprovalRequest.__table__.c.optimization_run_id == run_id,
+                    models.ApprovalRequest.__table__.c.status == "PENDING",
+                )
+            )
+            if approver_access is None:
+                approver_access = await connection.scalar(
+                    select(models.ApprovalDecision.__table__.c.id)
+                    .join(
+                        models.ApprovalRequest.__table__,
+                        models.ApprovalRequest.__table__.c.id
+                        == models.ApprovalDecision.__table__.c.approval_request_id,
+                    )
+                    .where(
+                        models.ApprovalRequest.__table__.c.optimization_run_id == run_id,
+                        models.ApprovalDecision.__table__.c.decided_by_user_id
+                        == UUID(principal.user_id),
+                    )
+                )
+        await _authorized_target(
+            request,
+            run["target_id"],
+            principal,
+            allow_approver=approver_access is not None,
+        )
         tables = {
             "snapshot": models.WorkloadSnapshot.__table__, "diagnosis": models.DiagnosisArtifact.__table__,
             "generation": models.CandidateGenerationArtifact.__table__, "ranking": models.CandidateRankingArtifact.__table__,
@@ -330,7 +358,7 @@ async def create_target(
         owner_user_id=UUID(principal.user_id),
         name=body.name,
         connection_label=body.connection_label,
-        deployment_mode="APPROVAL_CONTROLLED",
+        deployment_mode=body.deployment_mode.value,
         state="ACTIVE",
         is_active=True,
     )

@@ -72,7 +72,12 @@ async def test_diagnostic_logs_are_structured_and_raw_lines_are_never_persistabl
     raw_line = json.dumps(
         {
             "msg": "Slow query",
-            "attr": {"type": "command", "ns": "commerce.orders", "command": {"find": "orders", "filter": {"customer_email": CANARY}}},
+            "attr": {
+                "type": "command",
+                "ns": "commerce.orders",
+                "command": {"find": "orders", "filter": {"customer_email": CANARY}},
+                "durationMillis": 125,
+            },
         }
     )
     provider = DiagnosticLogTelemetryProvider((raw_line, f"unstructured {CANARY}"))
@@ -81,6 +86,11 @@ async def test_diagnostic_logs_are_structured_and_raw_lines_are_never_persistabl
 
     assert len(observations) == 1
     assert observations[0].namespace == "commerce.orders"
+    assert observations[0].operation == "find"
+    assert observations[0].successful_operation_count == 1
+    assert observations[0].failure_count == 0
+    assert observations[0].timeout_count == 0
+    assert observations[0].aggregate_execution_time_ms == 125
     assert CANARY not in json.dumps(observations[0].normalized_shape)
     assert raw_line != json.dumps(observations[0].normalized_shape, sort_keys=True)
 

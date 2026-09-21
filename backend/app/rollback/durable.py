@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from typing import Any, Mapping, cast
 from uuid import UUID, uuid4
 
-from sqlalchemy import insert, select
+from sqlalchemy import insert, select, text
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from app.actions.schemas import CreateIndexAction, DropIndexAction
@@ -47,24 +47,59 @@ class DurableRollbackService:
     async def _rollback_locked(self, bound: Mapping[str, Any]) -> tuple[models.RunStatus, str]:
         action = CreateIndexAction.model_validate(bound["action_payload"])
         state = await self._state(action)
+        intent = await self._rollback_record(bound["candidate_id"])
+        if intent is not None and intent["status"] == "INTENT_RECORDED":
+            expected_after = intent["rollback_payload"].get("expected_after")
+            if state == expected_after:
+                await self._finalize_record(
+                    bound,
+                    intent["rollback_payload"].get("before_state", state),
+                    state,
+                )
+                return models.RunStatus.ROLLED_BACK, "ROLLBACK_APPLIED"
         reason = self._safe_reason(bound, state, action)
         if reason is not None:
             await self._record(bound, "ROLLBACK_BLOCKED", {"reason": reason, "state": state})
             return models.RunStatus.ROLLBACK_BLOCKED, reason
+        expected_after = _without_owned_index(state, action.index_name)
+        await self._record(
+            bound,
+            "INTENT_RECORDED",
+            {"before_state": state, "expected_after": expected_after},
+        )
         await self._adapter.drop_index(Namespace(action.collection), action.index_name)
         after = await self._state(action)
-        if any(item["name"] == action.index_name for item in after["indexes"]):
+        if after != expected_after:
             await self._record(bound, "ROLLBACK_BLOCKED", {"reason": "INVERSE_EFFECT_UNVERIFIED", "state": after})
             return models.RunStatus.ROLLBACK_BLOCKED, "INVERSE_EFFECT_UNVERIFIED"
-        inverse = DropIndexAction.model_validate(bound["inverse_action"])
-        await self._ledger.append(
-            target_id=bound["target_id"], run_id=bound["run_id"], candidate_id=bound["candidate_id"], action_id=str(bound["action_id"]),
-            event_type="ROLLBACK_APPLIED", before_state=state, intended_state=after, after_state=after,
-            forward_action=inverse.model_dump(mode="json"), inverse_action=action.model_dump(mode="json"),
-            evidence_hash=bound["authority_fingerprint"], actor=self._actor,
-        )
-        await self._record(bound, "ROLLED_BACK", {"before_state": state, "after_state": after})
+        await self._finalize_record(bound, state, after)
         return models.RunStatus.ROLLED_BACK, "ROLLBACK_APPLIED"
+
+    async def _finalize_record(
+        self, bound: Mapping[str, Any], before: Mapping[str, Any], after: Mapping[str, Any]
+    ) -> None:
+        action = CreateIndexAction.model_validate(bound["action_payload"])
+        inverse = DropIndexAction.model_validate(bound["inverse_action"])
+        if not await self._rollback_ledger_exists(bound):
+            await self._ledger.append(
+                target_id=bound["target_id"], run_id=bound["run_id"], candidate_id=bound["candidate_id"], action_id=str(bound["action_id"]),
+                event_type="ROLLBACK_APPLIED", before_state=before, intended_state=after, after_state=after,
+                forward_action=inverse.model_dump(mode="json"), inverse_action=action.model_dump(mode="json"),
+                evidence_hash=bound["authority_fingerprint"], actor=self._actor,
+            )
+        await self._record(bound, "ROLLED_BACK", {"before_state": before, "after_state": after})
+
+    async def _rollback_ledger_exists(self, bound: Mapping[str, Any]) -> bool:
+        async with self._engine.connect() as connection:
+            count = await connection.scalar(
+                text(
+                    "SELECT count(*) FROM production_ledger_entries "
+                    "WHERE run_id=:run_id AND candidate_id=:candidate_id "
+                    "AND event_type='ROLLBACK_APPLIED'"
+                ),
+                {"run_id": bound["run_id"], "candidate_id": bound["candidate_id"]},
+            )
+        return bool(count)
 
     async def _bound(self, run_id: UUID) -> Mapping[str, Any]:
         async with self._engine.connect() as connection:
@@ -115,9 +150,13 @@ class DurableRollbackService:
             ).mappings().one_or_none()
             if existing is None:
                 await connection.execute(insert(models.RollbackRecord.__table__).values(id=uuid4(), created_at=now, updated_at=now, candidate_id=bound["candidate_id"], status=status, rollback_payload=payload))
+            elif existing["status"] == "INTENT_RECORDED" and status in {"ROLLED_BACK", "ROLLBACK_BLOCKED"}:
+                await connection.execute(
+                    models.RollbackRecord.__table__.update()
+                    .where(models.RollbackRecord.__table__.c.id == existing["id"])
+                    .values(status=status, rollback_payload=payload, updated_at=now)
+                )
             elif existing["status"] != status:
-                # Rollback is terminal and immutable. A contradictory later retry
-                # must not rewrite the factual record.
                 raise ValueError("rollback outcome already recorded")
 
     async def _recorded_outcome(self, candidate_id: UUID) -> tuple[models.RunStatus, str] | None:
@@ -135,7 +174,20 @@ class DurableRollbackService:
         if row["status"] == "ROLLBACK_BLOCKED":
             payload = row["rollback_payload"] or {}
             return models.RunStatus.ROLLBACK_BLOCKED, str(payload.get("reason", "ROLLBACK_BLOCKED"))
+        if row["status"] == "INTENT_RECORDED":
+            return None
         raise ValueError("invalid persisted rollback status")
+
+    async def _rollback_record(self, candidate_id: UUID) -> Mapping[str, Any] | None:
+        async with self._engine.connect() as connection:
+            row = (
+                await connection.execute(
+                    select(models.RollbackRecord.__table__).where(
+                        models.RollbackRecord.__table__.c.candidate_id == candidate_id
+                    )
+                )
+            ).mappings().one_or_none()
+        return cast(Mapping[str, Any] | None, row)
 
     async def _state(self, action: CreateIndexAction) -> dict[str, Any]:
         namespace = Namespace(action.collection)
@@ -147,3 +199,9 @@ class DurableRollbackService:
 
 def _hash_action(action: CreateIndexAction) -> str:
     return hashlib.sha256(json.dumps(action.model_dump(mode="json"), sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+
+
+def _without_owned_index(state: Mapping[str, Any], index_name: str) -> dict[str, Any]:
+    result = dict(state)
+    result["indexes"] = [item for item in state["indexes"] if item["name"] != index_name]
+    return result

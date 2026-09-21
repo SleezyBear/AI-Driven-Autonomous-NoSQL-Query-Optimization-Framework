@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
-import json
 from datetime import datetime, timezone
 from dataclasses import dataclass
 from uuid import UUID, uuid4
@@ -13,6 +11,11 @@ from sqlalchemy.engine import RowMapping
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from app.autonomy.policy import DeploymentMode
+from app.autonomy.readiness import (
+    AUTO_ELIGIBLE_ACTIONS,
+    authority_integrity_fingerprint,
+    environment_binding,
+)
 from app.db import models
 
 
@@ -78,21 +81,58 @@ class DurableAuthorityService:
                     select(models.WorkloadSnapshot.__table__.c.completeness).where(models.WorkloadSnapshot.__table__.c.id == run["workload_snapshot_id"])
                 )
             ).scalar_one_or_none()
-            if action is None or not isinstance(snapshot, dict):
+            target = (
+                await connection.execute(
+                    select(models.Target.__table__).where(
+                        models.Target.__table__.c.id == run["target_id"]
+                    )
+                )
+            ).mappings().one_or_none()
+            capability = (
+                await connection.execute(
+                    select(models.CapabilitySnapshot.__table__)
+                    .where(models.CapabilitySnapshot.__table__.c.target_id == run["target_id"])
+                    .order_by(models.CapabilitySnapshot.__table__.c.created_at.desc())
+                    .limit(1)
+                )
+            ).mappings().one_or_none()
+            credential = (
+                await connection.execute(
+                    select(models.TargetCredential.__table__).where(
+                        models.TargetCredential.__table__.c.target_id == run["target_id"]
+                    )
+                )
+            ).mappings().one_or_none()
+            if action is None or target is None or not isinstance(snapshot, dict):
                 raise AuthorityInvariantError("authority evidence is incomplete")
             mode = DeploymentMode(str(run["deployment_mode"]))
-            eligible = bool(snapshot.get("completeness", {}).get("production_autonomy_eligible", False))
+            eligible = bool(snapshot.get("production_autonomy_eligible", False))
+            admission_production_eligible = bool(admission["production_eligible"])
             action_type = str(action["action_type"])
             automatic = (
                 mode is DeploymentMode.FULL_AUTONOMOUS
                 and eligible
+                and admission_production_eligible
                 and candidate["policy_classification"] == "AUTO_ELIGIBLE_AFTER_ADMISSION"
-                and action_type in {"CREATE_INDEX", "SET_QUERY_SETTINGS_INDEX_HINT"}
+                and action_type in AUTO_ELIGIBLE_ACTIONS
             )
             authority_type = "AUTONOMOUS" if automatic else "HUMAN_REQUIRED"
             reason = "AUTONOMY_ELIGIBLE" if automatic else AUTONOMY_INELIGIBLE_REQUIRES_APPROVAL
-            fingerprint = _fingerprint(
-                run_id, candidate["id"], candidate["deterministic_fingerprint"], mode.value, authority_type, reason, eligible
+            target_identity, capability_fingerprint, security_fingerprint = environment_binding(
+                target, capability, credential
+            )
+            fingerprint = authority_integrity_fingerprint(
+                run_id,
+                candidate["id"],
+                candidate["deterministic_fingerprint"],
+                mode.value,
+                authority_type,
+                reason,
+                eligible,
+                admission_production_eligible,
+                target_identity,
+                capability_fingerprint,
+                security_fingerprint,
             )
             values = {
                 "id": uuid4(),
@@ -113,8 +153,3 @@ class DurableAuthorityService:
 
 def _enum_value(value: object) -> str:
     return str(value.value if hasattr(value, "value") else value)
-
-
-def _fingerprint(*values: object) -> str:
-    encoded = json.dumps([str(value) for value in values], separators=(",", ":"), sort_keys=True).encode()
-    return hashlib.sha256(encoded).hexdigest()

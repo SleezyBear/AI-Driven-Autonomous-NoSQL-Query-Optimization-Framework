@@ -81,7 +81,8 @@ class MongoDBAdapter(DatabaseAdapter):
     async def get_query_settings_index_hint(
         self, namespace: Namespace, query_shape_hash: str
     ) -> QuerySettingsIndexHint | None:
-        cursor = self._database.aggregate([{"$querySettings": {}}])
+        # MongoDB requires $querySettings to run as aggregate:1 on admin.
+        cursor = self._admin_database.aggregate([{"$querySettings": {}}])
         if isawaitable(cursor):
             cursor = await cursor
         settings_documents = [document async for document in cursor]

@@ -11,7 +11,16 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_STATUS = PROJECT_ROOT / "docs" / "PHASE_STATUS.md"
 DEFAULT_REGISTRY = PROJECT_ROOT / "docs" / "SYSTEM_ACCEPTANCE_REGISTRY.json"
-SYSTEM_PASS_ROW = re.compile(r"^\|\s*(?P<phase>\d+)\s*\|.*\bSYSTEM_PASS\b.*\|", re.MULTILINE)
+SYSTEM_PASS_ROW = re.compile(
+    r"^\|\s*(?P<phase>(?:R)?\d+)\s*\|.*\bSYSTEM_PASS\b.*\|",
+    re.MULTILINE,
+)
+
+
+def phase_sort_key(value: str) -> tuple[int, int]:
+    if value.startswith("R"):
+        return (1, int(value[1:]))
+    return (0, int(value))
 
 
 def system_pass_phases(status_path: Path) -> set[str]:
@@ -44,7 +53,10 @@ def check(status_path: Path, registry_path: Path) -> int:
         print(f"System-pass registry: FAIL — {error}")
         return 1
     if missing:
-        print(f"System-pass registry: FAIL — missing registrations for phase(s): {', '.join(sorted(missing, key=int))}")
+        print(
+            "System-pass registry: FAIL — missing registrations for phase(s): "
+            + ", ".join(sorted(missing, key=phase_sort_key))
+        )
         return 1
     print(f"System-pass registry: PASS ({len(system_pass_phases(status_path))} SYSTEM_PASS phase(s) registered)")
     return 0

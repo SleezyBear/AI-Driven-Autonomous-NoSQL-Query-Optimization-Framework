@@ -99,6 +99,31 @@ async def test_ranking_is_exact_durable_reusable_and_restart_safe(disposable_dia
 
 
 @pytest.mark.asyncio
+async def test_empty_advisory_diagnosis_cannot_veto_measured_deterministic_candidates(
+    disposable_diagnosis_database: str,
+) -> None:
+    engine = create_async_engine(disposable_diagnosis_database)
+    shapes = (
+        {
+            "hash": "measured-find",
+            "shape": '{"query":{"filter":{"customer_id":"<string>"}}}',
+        },
+    )
+    try:
+        _, run_id, _snapshot_id = await _run_with_snapshot(engine, shapes)
+        diagnosis = await DiagnosisService(
+            engine, ControlledProvider(DiagnosisArtifactResult())
+        ).create_for_run(run_id)
+        assert diagnosis.findings == ()
+        generated = await CandidateGenerationService(
+            engine, FakeDatabaseAdapter((Namespace("orders"),))
+        ).create_for_run(run_id)
+        assert generated.candidate_count == 1
+    finally:
+        await engine.dispose()
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize("mode", ("unknown", "foreign_uuid", "duplicate", "missing", "extra"))
 async def test_ranking_rejects_unknown_duplicate_or_missing_candidate_ids(disposable_diagnosis_database: str, mode: str) -> None:
     engine = create_async_engine(disposable_diagnosis_database)

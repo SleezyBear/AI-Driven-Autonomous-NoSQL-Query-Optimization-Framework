@@ -371,6 +371,7 @@ class AdmissionArtifact(TimestampedUUID):
     evaluation_plan_id: Mapped[UUID] = mapped_column(ForeignKey("evaluation_plans.id", ondelete="RESTRICT"))
     selected_candidate_id: Mapped[UUID | None] = mapped_column(ForeignKey("candidates.id", ondelete="RESTRICT"))
     admitted_candidate_ids: Mapped[list[str]] = mapped_column(JSON)
+    production_eligible: Mapped[bool] = mapped_column(Boolean, default=False)
     artifact_fingerprint: Mapped[str] = mapped_column(String(128), unique=True)
 
 
@@ -401,6 +402,29 @@ class DeploymentArtifact(TimestampedUUID):
     before_state: Mapped[dict[str, Any]] = mapped_column(JSON)
     inverse_action: Mapped[dict[str, Any]] = mapped_column(JSON)
     after_state: Mapped[dict[str, Any] | None] = mapped_column(JSON)
+
+
+class QuerySettingsDeployment(TimestampedUUID):
+    """Owned query-settings intent, observed states, and exact inverse."""
+
+    __tablename__ = "query_settings_deployments"
+    target_id: Mapped[UUID] = mapped_column(ForeignKey("targets.id", ondelete="RESTRICT"), index=True)
+    optimization_run_id: Mapped[UUID | None] = mapped_column(ForeignKey("optimization_runs.id", ondelete="RESTRICT"))
+    query_shape_hash: Mapped[str] = mapped_column(String(255))
+    namespace: Mapped[str] = mapped_column(String(320))
+    action_fingerprint: Mapped[str] = mapped_column(String(128))
+    idempotency_key: Mapped[str] = mapped_column(String(128), unique=True)
+    status: Mapped[str] = mapped_column(String(32))
+    before_state: Mapped[dict[str, Any]] = mapped_column(JSON)
+    intended_state: Mapped[dict[str, Any]] = mapped_column(JSON)
+    after_state: Mapped[dict[str, Any] | None] = mapped_column(JSON)
+    inverse_action: Mapped[dict[str, Any]] = mapped_column(JSON)
+    ownership_token: Mapped[str] = mapped_column(String(128))
+    __table_args__ = (
+        UniqueConstraint(
+            "target_id", "query_shape_hash", "ownership_token", name="uq_query_settings_owned"
+        ),
+    )
 
 
 class SafetyResult(TimestampedUUID):

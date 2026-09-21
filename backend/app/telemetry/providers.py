@@ -29,6 +29,10 @@ class TelemetryObservation:
     collection: str
     operation: str
     normalized_shape: dict[str, Any]
+    successful_operation_count: int | None = None
+    failure_count: int | None = None
+    timeout_count: int | None = None
+    aggregate_execution_time_ms: float | None = None
 
     @property
     def namespace(self) -> str:
@@ -147,7 +151,17 @@ def _from_query_stats(document: Mapping[str, Any]) -> TelemetryObservation | Non
     shape = key.get("queryShape", key)
     query_shape = key.get("queryShape")
     operation = str(query_shape.get("command", "unknown")) if isinstance(query_shape, Mapping) else "unknown"
-    return _observation(TelemetrySource.QUERY_STATS, int(document.get("execCount", 0)), namespace, operation, shape)
+    count = int(document.get("execCount", 0))
+    total_micros = _numeric(document.get("totalExecMicros"))
+    return _observation(
+        TelemetrySource.QUERY_STATS,
+        count,
+        namespace,
+        operation,
+        shape,
+        successful_operation_count=count,
+        aggregate_execution_time_ms=None if total_micros is None else total_micros / 1_000,
+    )
 
 
 def _parse_diagnostic_line(line: str) -> TelemetryObservation | None:
@@ -170,14 +184,61 @@ def _from_command_document(source: TelemetrySource, document: Mapping[str, Any])
     command = document.get("command", document.get("query", {}))
     if not isinstance(command, Mapping):
         command = {}
-    operation = str(document.get("op", document.get("type", _operation_from_command(command))))
-    return _observation(source, 1, namespace, operation, command)
+    reported_operation = document.get("op", document.get("type"))
+    operation = (
+        _operation_from_command(command)
+        if reported_operation in {None, "command"}
+        else str(reported_operation)
+    )
+    duration = _numeric(document.get("durationMillis", document.get("millis")))
+    if duration is None:
+        microseconds = _numeric(document.get("microsecs_running"))
+        duration = None if microseconds is None else microseconds / 1_000
+    completed = source in {TelemetrySource.DIAGNOSTIC_LOG, TelemetrySource.PROFILER}
+    failed = any(name in document for name in ("errCode", "errName", "errMsg"))
+    timeout = str(document.get("errName", "")).lower() in {
+        "maxtimemsexpired",
+        "networktimeoutexception",
+    }
+    return _observation(
+        source,
+        1,
+        namespace,
+        operation,
+        command,
+        successful_operation_count=int(not failed) if completed else None,
+        failure_count=int(failed) if completed else None,
+        timeout_count=int(timeout) if completed else None,
+        aggregate_execution_time_ms=duration,
+    )
 
 
-def _observation(source: TelemetrySource, count: int, namespace: tuple[str, str], operation: str, shape: Any) -> TelemetryObservation:
+def _observation(
+    source: TelemetrySource,
+    count: int,
+    namespace: tuple[str, str],
+    operation: str,
+    shape: Any,
+    *,
+    successful_operation_count: int | None = None,
+    failure_count: int | None = None,
+    timeout_count: int | None = None,
+    aggregate_execution_time_ms: float | None = None,
+) -> TelemetryObservation:
     normalized = canonicalize(shape)
     assert isinstance(normalized, dict)
-    return TelemetryObservation(source, max(count, 0), namespace[0], namespace[1], operation, normalized)
+    return TelemetryObservation(
+        source,
+        max(count, 0),
+        namespace[0],
+        namespace[1],
+        operation,
+        normalized,
+        successful_operation_count,
+        failure_count,
+        timeout_count,
+        aggregate_execution_time_ms,
+    )
 
 
 def _namespace(value: Any) -> tuple[str, str] | None:
@@ -194,6 +255,12 @@ def _namespace(value: Any) -> tuple[str, str] | None:
 
 def _operation_from_command(command: Mapping[str, Any]) -> str:
     return next((str(name) for name in ("find", "aggregate", "update", "delete", "insert") if name in command), "unknown")
+
+
+def _numeric(value: object) -> float | None:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    return float(value)
 
 
 async def _aggregate(database: MongoTelemetryDatabase, pipeline: list[dict[str, Any]], **kwargs: Any) -> Any:

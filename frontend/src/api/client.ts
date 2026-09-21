@@ -2,6 +2,18 @@ import type { ApiGetResponses, ApiPath } from "./openapi.generated";
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "";
 
+export class ApiError extends Error {
+  constructor(public readonly status: number, message: string) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
+export function shouldRetryApiRequest(failureCount: number, error: Error): boolean {
+  if (error instanceof ApiError && error.status >= 400 && error.status < 500) return false;
+  return failureCount < 3;
+}
+
 export type RunSummary = {
   run_id: string; target_id: string; status: string; deployment_mode: string;
   primary_metric_key: string | null; completion_reason: string | null;
@@ -16,7 +28,7 @@ async function request(path: string, init?: RequestInit): Promise<unknown> {
     ...init,
     headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}), ...init?.headers },
   });
-  if (!response.ok) throw new Error(response.status === 403 ? "You are not authorized for this action." : `API request failed (${response.status})`);
+  if (!response.ok) throw new ApiError(response.status, response.status === 403 ? "You are not authorized for this action." : `API request failed (${response.status})`);
   return response.json();
 }
 

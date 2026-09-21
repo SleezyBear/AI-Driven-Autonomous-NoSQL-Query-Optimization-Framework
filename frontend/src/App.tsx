@@ -20,7 +20,7 @@ function Login() {
   const [error, setError] = useState("");
   async function submit(event: FormEvent) {
     event.preventDefault(); setError("");
-    const response = await fetch("http://localhost:8000/auth/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, password }) });
+    const response = await fetch("/auth/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, password }) });
     if (!response.ok) { setError("Login failed."); return; }
     const tokens = await response.json() as { access_token: string; refresh_token: string };
     window.localStorage.setItem("access_token", tokens.access_token); window.localStorage.setItem("refresh_token", tokens.refresh_token); navigate("/");

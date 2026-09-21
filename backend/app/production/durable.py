@@ -18,6 +18,11 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 
 from app.actions.schemas import CreateIndexAction
 from app.adapters.contracts import DatabaseAdapter, IndexSpec, Namespace
+from app.autonomy.readiness import (
+    AUTO_ELIGIBLE_ACTIONS,
+    authority_integrity_fingerprint,
+    environment_binding,
+)
 from app.db import models
 from app.ledger.postgres import PostgresProductionLedger
 from app.production.target_lock import PostgresTargetMutationLock
@@ -123,12 +128,24 @@ class DurableDeploymentService:
                         models.OptimizationRun.__table__.c.id.label("run_id"),
                         models.OptimizationRun.__table__.c.target_id,
                         models.OptimizationRun.__table__.c.status.label("run_status"),
+                        models.OptimizationRun.__table__.c.deployment_mode.label("run_deployment_mode"),
                         models.AdmissionArtifact.__table__.c.selected_candidate_id,
+                        models.AdmissionArtifact.__table__.c.production_eligible.label("admission_production_eligible"),
                         models.AuthorityDecision.__table__.c.candidate_id.label("authority_candidate_id"),
                         models.AuthorityDecision.__table__.c.authority_type,
+                        models.AuthorityDecision.__table__.c.authority_reason,
+                        models.AuthorityDecision.__table__.c.deployment_mode.label("authority_deployment_mode"),
+                        models.AuthorityDecision.__table__.c.production_autonomy_eligible,
                         models.AuthorityDecision.__table__.c.candidate_fingerprint,
                         models.AuthorityDecision.__table__.c.integrity_fingerprint,
                         models.Candidate.__table__.c.deterministic_fingerprint,
+                        models.Candidate.__table__.c.status.label("candidate_status"),
+                        models.Candidate.__table__.c.policy_classification,
+                        models.WorkloadSnapshot.__table__.c.completeness,
+                        models.Target.__table__.c.connection_label,
+                        models.Target.__table__.c.deployment_mode.label("target_deployment_mode"),
+                        models.Target.__table__.c.state.label("target_state"),
+                        models.Target.__table__.c.is_active.label("target_is_active"),
                         models.CandidateAction.__table__.c.id.label("action_id"),
                         models.CandidateAction.__table__.c.action_type,
                         models.CandidateAction.__table__.c.action_payload,
@@ -138,6 +155,8 @@ class DurableDeploymentService:
                     .join(models.AuthorityDecision.__table__, models.AuthorityDecision.__table__.c.optimization_run_id == models.OptimizationRun.__table__.c.id)
                     .join(models.Candidate.__table__, models.Candidate.__table__.c.id == models.AdmissionArtifact.__table__.c.selected_candidate_id)
                     .join(models.CandidateAction.__table__, models.CandidateAction.__table__.c.candidate_id == models.Candidate.__table__.c.id)
+                    .join(models.WorkloadSnapshot.__table__, models.WorkloadSnapshot.__table__.c.id == models.OptimizationRun.__table__.c.workload_snapshot_id)
+                    .join(models.Target.__table__, models.Target.__table__.c.id == models.OptimizationRun.__table__.c.target_id)
                     .where(models.OptimizationRun.__table__.c.id == run_id)
                 )
             ).mappings().one_or_none()
@@ -145,8 +164,46 @@ class DurableDeploymentService:
             raise DurableDeploymentError("AUTHORITY_BINDING_MISSING")
         if row["deterministic_fingerprint"] != row["candidate_fingerprint"]:
             raise DurableDeploymentError("CANDIDATE_FINGERPRINT_DRIFT")
-        if row["action_type"] != "CREATE_INDEX":
+        if row["action_type"] != "CREATE_INDEX" or row["action_type"] not in AUTO_ELIGIBLE_ACTIONS:
             raise DurableDeploymentError("UNSUPPORTED_TYPED_PRODUCTION_ACTION")
+        if _value(row["candidate_status"]) != models.CandidateStatus.ADMITTED.value:
+            raise DurableDeploymentError("CANDIDATE_NOT_ADMITTED")
+        if row["run_deployment_mode"] != row["authority_deployment_mode"]:
+            raise DurableDeploymentError("DEPLOYMENT_MODE_DRIFT")
+        capability, credential = await self._environment_evidence(row["target_id"])
+        target_identity, capability_fingerprint, security_fingerprint = environment_binding(
+            {
+                "id": row["target_id"],
+                "connection_label": row["connection_label"],
+                "deployment_mode": row["target_deployment_mode"],
+                "state": row["target_state"],
+                "is_active": row["target_is_active"],
+            },
+            capability,
+            credential,
+        )
+        expected_authority_fingerprint = authority_integrity_fingerprint(
+            run_id,
+            row["authority_candidate_id"],
+            row["candidate_fingerprint"],
+            row["authority_deployment_mode"],
+            row["authority_type"],
+            row["authority_reason"],
+            bool(row["production_autonomy_eligible"]),
+            bool(row["admission_production_eligible"]),
+            target_identity,
+            capability_fingerprint,
+            security_fingerprint,
+        )
+        if expected_authority_fingerprint != row["integrity_fingerprint"]:
+            raise DurableDeploymentError("PREDEPLOYMENT_EVIDENCE_DRIFT")
+        if row["authority_type"] == "AUTONOMOUS" and not (
+            row["run_deployment_mode"] == "FULL_AUTONOMOUS"
+            and row["production_autonomy_eligible"]
+            and row["admission_production_eligible"]
+            and row["policy_classification"] == "AUTO_ELIGIBLE_AFTER_ADMISSION"
+        ):
+            raise DurableDeploymentError("AUTONOMY_PREREQUISITE_DRIFT")
         if row["authority_type"] == "HUMAN_REQUIRED":
             async with self._engine.connect() as connection:
                 approval = (
@@ -163,6 +220,27 @@ class DurableDeploymentService:
             if approval is None:
                 raise DurableDeploymentError("CURRENT_APPROVAL_REQUIRED")
         return cast(Mapping[str, Any], row)
+
+    async def _environment_evidence(
+        self, target_id: UUID
+    ) -> tuple[Mapping[str, Any] | None, Mapping[str, Any] | None]:
+        async with self._engine.connect() as connection:
+            capability = (
+                await connection.execute(
+                    select(models.CapabilitySnapshot.__table__)
+                    .where(models.CapabilitySnapshot.__table__.c.target_id == target_id)
+                    .order_by(models.CapabilitySnapshot.__table__.c.created_at.desc())
+                    .limit(1)
+                )
+            ).mappings().one_or_none()
+            credential = (
+                await connection.execute(
+                    select(models.TargetCredential.__table__).where(
+                        models.TargetCredential.__table__.c.target_id == target_id
+                    )
+                )
+            ).mappings().one_or_none()
+        return capability, credential
 
     async def _intent(
         self, bound: Mapping[str, Any], before: dict[str, Any], action: CreateIndexAction, fingerprint: str

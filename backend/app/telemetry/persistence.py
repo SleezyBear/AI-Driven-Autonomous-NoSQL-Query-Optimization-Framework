@@ -77,9 +77,32 @@ class TelemetryPersistenceService:
                     ))
                 else:
                     shape_id = existing["id"]
-                await connection.execute(insert(models.MetricObservation.__table__).values(
-                    id=uuid4(), created_at=now, updated_at=now, telemetry_window_id=window_id,
-                    query_shape_id=shape_id, metric_name="operation_count",
-                    metric_value=observation.operation_count, observed_at=ended,
-                ))
+                metrics: tuple[tuple[str, int | float | None], ...] = (
+                    ("operation_count", observation.operation_count),
+                    (
+                        "successful_operation_count",
+                        observation.successful_operation_count,
+                    ),
+                    ("failure_count", observation.failure_count),
+                    ("timeout_count", observation.timeout_count),
+                    (
+                        "aggregate_execution_time_ms",
+                        observation.aggregate_execution_time_ms,
+                    ),
+                )
+                for metric_name, metric_value in metrics:
+                    if metric_value is None:
+                        continue
+                    await connection.execute(
+                        insert(models.MetricObservation.__table__).values(
+                            id=uuid4(),
+                            created_at=now,
+                            updated_at=now,
+                            telemetry_window_id=window_id,
+                            query_shape_id=shape_id,
+                            metric_name=metric_name,
+                            metric_value=metric_value,
+                            observed_at=ended,
+                        )
+                    )
         return window_id

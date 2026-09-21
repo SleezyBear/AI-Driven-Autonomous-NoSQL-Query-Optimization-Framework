@@ -21,6 +21,7 @@ class DurableAdmissionResult:
     artifact_id: UUID
     selected_candidate_id: UUID | None
     admitted_candidate_ids: tuple[UUID, ...]
+    production_eligible: bool
 
 
 class DurableAdmissionService:
@@ -33,7 +34,7 @@ class DurableAdmissionService:
         async with self._engine.begin() as connection:
             existing = (await connection.execute(select(models.AdmissionArtifact.__table__).where(models.AdmissionArtifact.__table__.c.optimization_run_id == run_id).with_for_update())).mappings().one_or_none()
             if existing is not None:
-                return DurableAdmissionResult(existing["id"], existing["selected_candidate_id"], tuple(UUID(value) for value in existing["admitted_candidate_ids"]))
+                return DurableAdmissionResult(existing["id"], existing["selected_candidate_id"], tuple(UUID(value) for value in existing["admitted_candidate_ids"]), bool(existing["production_eligible"]))
             plan = (await connection.execute(select(models.EvaluationPlan.__table__).where(models.EvaluationPlan.__table__.c.optimization_run_id == run_id))).mappings().one_or_none()
             if plan is None:
                 raise ValueError("durable evaluation plan is required before admission")
@@ -41,6 +42,7 @@ class DurableAdmissionService:
             if set(requests) != set(ranked):
                 raise ValueError("admission requests must exactly match frozen evaluation selection")
             admitted: list[UUID] = []
+            production_eligible_by_candidate: dict[UUID, bool] = {}
             evidence: dict[str, object] = {}
             for candidate_id in ranked:
                 result = evaluate_candidate_admission(requests[candidate_id])
@@ -48,12 +50,14 @@ class DurableAdmissionService:
                 await AdmissionRepository(self._engine).create_in_transaction(connection, candidate_id=candidate_id, verdict=result.status.value, evidence_hash=_hash(asdict(result)))
                 if result.status is AdmissionStatus.ADMITTED:
                     admitted.append(candidate_id)
+                    production_eligible_by_candidate[candidate_id] = result.production_eligible
                     await connection.execute(models.Candidate.__table__.update().where(models.Candidate.__table__.c.id == candidate_id).values(status=models.CandidateStatus.ADMITTED))
                 else:
                     await connection.execute(models.Candidate.__table__.update().where(models.Candidate.__table__.c.id == candidate_id).values(status=models.CandidateStatus.REJECTED))
             selected = next((candidate_id for candidate_id in ranked if candidate_id in admitted), None)
-            row = await AdmissionArtifactRepository(self._engine).create_in_transaction(connection, optimization_run_id=run_id, evaluation_plan_id=plan["id"], selected_candidate_id=selected, admitted_candidate_ids=[str(candidate_id) for candidate_id in admitted], artifact_fingerprint=_hash({"run_id": str(run_id), "plan": str(plan["id"]), "results": evidence, "selected": str(selected) if selected else None}))
-            return DurableAdmissionResult(row["id"], selected, tuple(admitted))
+            production_eligible = bool(selected is not None and production_eligible_by_candidate.get(selected, False))
+            row = await AdmissionArtifactRepository(self._engine).create_in_transaction(connection, optimization_run_id=run_id, evaluation_plan_id=plan["id"], selected_candidate_id=selected, admitted_candidate_ids=[str(candidate_id) for candidate_id in admitted], production_eligible=production_eligible, artifact_fingerprint=_hash({"run_id": str(run_id), "plan": str(plan["id"]), "results": evidence, "selected": str(selected) if selected else None, "production_eligible": production_eligible}))
+            return DurableAdmissionResult(row["id"], selected, tuple(admitted), production_eligible)
 
 
 def _hash(value: object) -> str:

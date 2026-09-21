@@ -43,3 +43,27 @@ def test_registered_system_pass_is_accepted(tmp_path: Path) -> None:
     )
 
     assert check(status, registry) == 0
+
+def test_remediation_system_pass_uses_distinct_r_prefixed_phase_id(tmp_path: Path) -> None:
+    status = tmp_path / "status.md"
+    registry = tmp_path / "registry.json"
+    status.write_text(
+        "| Phase | Scope | Status | Observable test |\n"
+        "| --- | --- | --- | --- |\n"
+        "| R24 | no-mock lifecycle | COMPLETE — SYSTEM_PASS | `make r24-system` |\n"
+    )
+    registry.write_text(
+        json.dumps(
+            {
+                "system_acceptance_tests": [
+                    {
+                        "phase": "R24",
+                        "command": "make r24-system",
+                        "test": "scripts/r24_system_acceptance.py",
+                    }
+                ]
+            }
+        )
+    )
+
+    assert check(status, registry) == 0

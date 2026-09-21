@@ -1,3 +1,9 @@
 {
-  "system_acceptance_tests": []
+  "system_acceptance_tests": [
+    {
+      "phase": "R24",
+      "command": "PYTHONPATH=backend ./nosql/bin/python scripts/r24_system_acceptance.py",
+      "test": "scripts/r24_system_acceptance.py"
+    }
+  ]
 }

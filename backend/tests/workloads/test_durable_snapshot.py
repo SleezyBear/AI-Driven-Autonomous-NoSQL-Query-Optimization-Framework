@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import os
 from datetime import datetime, timedelta, timezone
 from uuid import UUID, uuid4
 
@@ -99,7 +100,10 @@ async def test_real_monitored_mongo_currentop_to_postgres_to_snapshot(disposable
     """The real path is currentOp-only, therefore not autonomy-qualified."""
     engine = create_async_engine(disposable_workload_database)
     user, target, run = await _run(engine)
-    uri = "mongodb://control_plane_root:control_plane_root_dev_only@127.0.0.1:27017/admin?authSource=admin&directConnection=true"
+    uri = os.environ.get(
+        "R19LP_PRODUCTION_TEST_MONGODB_URI",
+        "mongodb://control_plane_root:control_plane_root_dev_only@127.0.0.1:27017/admin?authSource=admin&directConnection=true",
+    )
     client: AsyncMongoClient[object] = AsyncMongoClient(uri)
     try:
         collection = client.get_database(f"r19e_snapshot_acceptance_{uuid4().hex}").get_collection("orders")

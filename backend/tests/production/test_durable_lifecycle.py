@@ -18,10 +18,11 @@ from app.adapters.fake import FakeDatabaseAdapter
 from app.adapters.mongodb import MongoDBAdapter
 from app.approvals.durable import DurableApprovalRequired, DurableApprovalService
 from app.authority.durable import AUTONOMY_INELIGIBLE_REQUIRES_APPROVAL, DurableAuthorityService
+from app.autonomy.readiness import authority_integrity_fingerprint, environment_binding
 from app.metrics.collector import MetricSnapshot
 from app.monitoring.durable import DurableMonitoringService
 from app.monitoring.post_deployment import MonitoringWindow
-from app.production.durable import DurableDeploymentService
+from app.production.durable import DurableDeploymentError, DurableDeploymentService
 from app.rollback.durable import DurableRollbackService
 from app.runs.orchestrator import OptimizationRunOrchestrator
 from app.worker.durable import ExecutionContext
@@ -40,7 +41,7 @@ async def _prepared_run(engine: object, *, approval_controlled: bool = False, ad
         run_status = "ADMITTED" if admitted else "APPROVAL_PENDING" if approval_controlled else "APPROVED"
         await connection.execute(text("INSERT INTO targets (id,created_at,updated_at,owner_user_id,name,deployment_mode,state,connection_label,is_active) VALUES (:id,:now,:now,:owner,:name,:mode,'ACTIVE','isolated',true)"), {"id": target, "now": now, "owner": user, "name": f"target-{target.hex}", "mode": mode})
         await connection.execute(text("INSERT INTO telemetry_windows (id,created_at,updated_at,target_id,started_at,ended_at,source,status) VALUES (:id,:now,:now,:target,:now,:now,'test','COMPLETE')"), {"id": window, "now": now, "target": target})
-        await connection.execute(text("INSERT INTO workload_snapshots (id,created_at,updated_at,target_id,telemetry_window_id,snapshot,fingerprint,completeness) VALUES (:id,:now,:now,:target,:window,'{}',:fingerprint,CAST(:completeness AS jsonb))"), {"id": snapshot, "now": now, "target": target, "window": window, "fingerprint": f"snapshot-{snapshot.hex}", "completeness": '{"completeness":{"production_autonomy_eligible":true}}' if autonomy_eligible else '{"completeness":{"production_autonomy_eligible":false}}'})
+        await connection.execute(text("INSERT INTO workload_snapshots (id,created_at,updated_at,target_id,telemetry_window_id,snapshot,fingerprint,completeness) VALUES (:id,:now,:now,:target,:window,'{}',:fingerprint,CAST(:completeness AS jsonb))"), {"id": snapshot, "now": now, "target": target, "window": window, "fingerprint": f"snapshot-{snapshot.hex}", "completeness": '{"production_autonomy_eligible":true}' if autonomy_eligible else '{"production_autonomy_eligible":false}'})
         await connection.execute(text("INSERT INTO namespaces (id,created_at,updated_at,target_id,name,allowlisted) VALUES (:id,:now,:now,:target,'orders',true)"), {"id": namespace, "now": now, "target": target})
         await connection.execute(text("INSERT INTO query_shapes (id,created_at,updated_at,namespace_id,shape_hash,normalized_shape,operation) VALUES (:id,:now,:now,:namespace,:hash,'{}','find')"), {"id": shape, "now": now, "namespace": namespace, "hash": f"shape-{shape.hex}"})
         await connection.execute(text("INSERT INTO optimization_runs (id,created_at,updated_at,target_id,workload_snapshot_id,status,requested_by_user_id,deployment_mode,primary_metric_key) VALUES (:id,:now,:now,:target,:snapshot,CAST(:status AS run_status),:user,:mode,'p99')"), {"id": run, "now": now, "target": target, "snapshot": snapshot, "user": user, "status": run_status, "mode": mode})
@@ -51,9 +52,20 @@ async def _prepared_run(engine: object, *, approval_controlled: bool = False, ad
         await connection.execute(text("INSERT INTO candidate_generation_artifacts (id,created_at,updated_at,optimization_run_id,workload_snapshot_id,diagnosis_artifact_id,generator_version,candidate_count,ordered_candidate_fingerprints,artifact_fingerprint,completed_at) VALUES (:id,:now,:now,:run,:snapshot,:diagnosis,'test',1,CAST(:ordered AS jsonb),:fingerprint,:now)"), {"id": generation, "now": now, "run": run, "snapshot": snapshot, "diagnosis": diagnosis, "ordered": f'["candidate-fingerprint-{candidate.hex}"]', "fingerprint": f"generation-{generation.hex}"})
         await connection.execute(text("INSERT INTO candidate_ranking_artifacts (id,created_at,updated_at,optimization_run_id,generation_artifact_id,ai_invocation_id,ordered_candidate_ids,artifact_fingerprint) VALUES (:id,:now,:now,:run,:generation,:invocation,CAST(:ordered AS jsonb),:fingerprint)"), {"id": ranking, "now": now, "run": run, "generation": generation, "invocation": invocation, "ordered": f'["{candidate}"]', "fingerprint": f"ranking-{ranking.hex}"})
         await connection.execute(text("INSERT INTO evaluation_plans (id,created_at,updated_at,optimization_run_id,ranking_artifact_id,profile,selected_candidate_ids,calibration,artifact_fingerprint) VALUES (:id,:now,:now,:run,:ranking,'SMOKE',CAST(:selected AS jsonb),'{}',:fingerprint)"), {"id": evaluation_plan, "now": now, "run": run, "ranking": ranking, "selected": f'["{candidate}"]', "fingerprint": f"plan-{evaluation_plan.hex}"})
-        await connection.execute(text("INSERT INTO admission_artifacts (id,created_at,updated_at,optimization_run_id,evaluation_plan_id,selected_candidate_id,admitted_candidate_ids,artifact_fingerprint) VALUES (:id,:now,:now,:run,:plan,:candidate,CAST(:admitted AS jsonb),:fingerprint)"), {"id": admission, "now": now, "run": run, "plan": evaluation_plan, "candidate": candidate, "admitted": f'["{candidate}"]', "fingerprint": f"admission-{admission.hex}"})
+        admission_production_eligible = not approval_controlled
+        await connection.execute(text("INSERT INTO admission_artifacts (id,created_at,updated_at,optimization_run_id,evaluation_plan_id,selected_candidate_id,admitted_candidate_ids,production_eligible,artifact_fingerprint) VALUES (:id,:now,:now,:run,:plan,:candidate,CAST(:admitted AS jsonb),:production_eligible,:fingerprint)"), {"id": admission, "now": now, "run": run, "plan": evaluation_plan, "candidate": candidate, "admitted": f'["{candidate}"]', "production_eligible": admission_production_eligible, "fingerprint": f"admission-{admission.hex}"})
         if not admitted:
-            await connection.execute(text("INSERT INTO authority_decisions (id,created_at,updated_at,optimization_run_id,candidate_id,candidate_fingerprint,deployment_mode,authority_type,authority_reason,production_autonomy_eligible,integrity_fingerprint) VALUES (:id,:now,:now,:run,:candidate,:candidate_fingerprint,:mode,:authority_type,:reason,:eligible,:fingerprint)"), {"id": authority, "now": now, "run": run, "candidate": candidate, "candidate_fingerprint": f"candidate-fingerprint-{candidate.hex}", "fingerprint": f"authority-{authority.hex}", "mode": mode, "authority_type": "HUMAN_REQUIRED" if approval_controlled else "AUTONOMOUS", "reason": "AUTONOMY_INELIGIBLE_REQUIRES_APPROVAL" if approval_controlled else "AUTONOMY_ELIGIBLE", "eligible": autonomy_eligible})
+            authority_type = "HUMAN_REQUIRED" if approval_controlled else "AUTONOMOUS"
+            reason = "AUTONOMY_INELIGIBLE_REQUIRES_APPROVAL" if approval_controlled else "AUTONOMY_ELIGIBLE"
+            target_identity, capability_fingerprint, security_fingerprint = environment_binding(
+                {"id": target, "connection_label": "isolated", "deployment_mode": mode, "state": "ACTIVE", "is_active": True}, None, None
+            )
+            authority_fingerprint = authority_integrity_fingerprint(
+                run, candidate, f"candidate-fingerprint-{candidate.hex}", mode, authority_type,
+                reason, autonomy_eligible, admission_production_eligible,
+                target_identity, capability_fingerprint, security_fingerprint,
+            )
+            await connection.execute(text("INSERT INTO authority_decisions (id,created_at,updated_at,optimization_run_id,candidate_id,candidate_fingerprint,deployment_mode,authority_type,authority_reason,production_autonomy_eligible,integrity_fingerprint) VALUES (:id,:now,:now,:run,:candidate,:candidate_fingerprint,:mode,:authority_type,:reason,:eligible,:fingerprint)"), {"id": authority, "now": now, "run": run, "candidate": candidate, "candidate_fingerprint": f"candidate-fingerprint-{candidate.hex}", "fingerprint": authority_fingerprint, "mode": mode, "authority_type": authority_type, "reason": reason, "eligible": autonomy_eligible})
     return run, target, candidate
 
 
@@ -188,6 +200,19 @@ async def test_approval_grant_is_four_eyes_and_creates_exactly_one_continuation(
             approver = uuid4()
             now = datetime.now(timezone.utc)
             await connection.execute(text("INSERT INTO users (id,created_at,updated_at,email,password_hash,role,status,failed_login_count) VALUES (:id,:now,:now,:email,'hash','APPROVER','ACTIVE',0)"), {"id": approver, "now": now, "email": f"approver-{approver.hex}@example.test"})
+            await connection.execute(
+                text(
+                    "INSERT INTO jobs "
+                    "(id,created_at,updated_at,payload,status,attempts,optimization_run_id,kind,completed_at) "
+                    "VALUES (:id,:now,:now,CAST(:payload AS jsonb),'COMPLETED',1,:run,'OPTIMIZATION',:now)"
+                ),
+                {
+                    "id": uuid4(),
+                    "now": now,
+                    "payload": f'{{"run_id":"{run}"}}',
+                    "run": run,
+                },
+            )
         service = DurableApprovalService(engine)
         request = await service.request(action_id=str(action_id), target_id=target, candidate_id=candidate, candidate_fingerprint=f"candidate-fingerprint-{candidate.hex}", evidence_hash="authority-bound", requester_id=requester, optimization_run_id=run)
         with pytest.raises(DurableApprovalRequired):
@@ -200,6 +225,7 @@ async def test_approval_grant_is_four_eyes_and_creates_exactly_one_continuation(
         async with engine.connect() as connection:
             assert (await connection.scalar(text("SELECT status::text FROM optimization_runs WHERE id=:id"), {"id": run})) == "DEPLOYED"
             assert (await connection.scalar(text("SELECT count(*) FROM jobs WHERE optimization_run_id=:id AND payload ->> 'continuation'='true'"), {"id": run})) == 1
+            assert (await connection.scalar(text("SELECT count(*) FROM jobs WHERE optimization_run_id=:id"), {"id": run})) == 2
     finally:
         await engine.dispose()
 
@@ -315,5 +341,62 @@ async def test_crash_after_external_effect_recovers_without_duplicate_mutation(d
         async with engine.connect() as connection:
             assert (await connection.scalar(text("SELECT status FROM deployment_artifacts WHERE optimization_run_id=:id"), {"id": run})) == "APPLIED"
             assert (await connection.scalar(text("SELECT status::text FROM optimization_runs WHERE id=:id"), {"id": run})) == "DEPLOYED"
+    finally:
+        await engine.dispose()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("drift", ["target", "capability", "credential"])
+async def test_predeployment_environment_drift_fails_before_mutation(
+    disposable_worker_database: str, drift: str
+) -> None:
+    engine = create_async_engine(disposable_worker_database)
+    run, target, _candidate = await _prepared_run(engine)
+    adapter = FakeDatabaseAdapter((Namespace("orders"),))
+    now = datetime.now(timezone.utc)
+    try:
+        async with engine.begin() as connection:
+            if drift == "target":
+                await connection.execute(
+                    text("UPDATE targets SET connection_label='changed' WHERE id=:id"),
+                    {"id": target},
+                )
+            elif drift == "capability":
+                await connection.execute(
+                    text(
+                        "INSERT INTO capability_snapshots "
+                        "(id,created_at,updated_at,target_id,capabilities,fingerprint) "
+                        "VALUES (:id,:now,:now,:target,CAST(:capabilities AS jsonb),:fingerprint)"
+                    ),
+                    {
+                        "id": uuid4(),
+                        "now": now,
+                        "target": target,
+                        "capabilities": '{"create_index":true}',
+                        "fingerprint": "changed-capability",
+                    },
+                )
+            else:
+                await connection.execute(
+                    text(
+                        "INSERT INTO target_credentials "
+                        "(id,created_at,updated_at,target_id,encrypted_payload,key_version,credential_type) "
+                        "VALUES (:id,:now,:now,:target,:payload,2,'mongodb')"
+                    ),
+                    {"id": uuid4(), "now": now, "target": target, "payload": b"opaque"},
+                )
+        with pytest.raises(DurableDeploymentError, match="PREDEPLOYMENT_EVIDENCE_DRIFT"):
+            await DurableDeploymentService(engine, adapter).deploy_for_run(
+                run, ExecutionContext(asyncio.Event())
+            )
+        assert await adapter.list_indexes(Namespace("orders")) == ()
+        async with engine.connect() as connection:
+            assert await connection.scalar(
+                text(
+                    "SELECT count(*) FROM deployment_artifacts "
+                    "WHERE optimization_run_id=:id"
+                ),
+                {"id": run},
+            ) == 0
     finally:
         await engine.dispose()

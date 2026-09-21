@@ -69,7 +69,11 @@ class CandidateGenerationService:
                     generation_rule_version=self._generator.generation_rule_version,
                     affected_query_shape_ids=[str(definition["query_shape_id"])],
                     evidence_refs=definition["evidence_refs"],
-                    policy_classification="SAFE_EXECUTABLE_CREATE_INDEX",
+                    # This value is consumed by the immutable authority boundary.
+                    # It means only that the typed action may be considered for
+                    # autonomy after deterministic/statistical admission; it is
+                    # not itself deployment authority.
+                    policy_classification="AUTO_ELIGIBLE_AFTER_ADMISSION",
                 )
                 await CandidateActionRepository(self._engine).create_in_transaction(
                     connection, candidate_id=row["id"], action_type="CREATE_INDEX", action_payload=payload, reversible=True
@@ -116,6 +120,17 @@ class CandidateGenerationService:
             for shape_id in finding["query_shape_ids"]:
                 if shape_id in allowed_ids:
                     referenced.setdefault(shape_id, []).extend(str(ref) for ref in finding["evidence_refs"])
+        # The advisory model may legitimately return no findings. It must not
+        # become a hidden veto over deterministic candidate generation when the
+        # immutable snapshot itself proves an execution-time-protected find
+        # shape. Admission and authority remain independent downstream gates.
+        for shape in shapes:
+            shape_id = str(shape["query_shape_id"])
+            if (
+                str(shape["operation"]) == "find"
+                and bool(shape["protected_execution_time_share"])
+            ):
+                referenced.setdefault(shape_id, []).append(f"QS:{shape['id']}")
         return {"snapshot_id": run["workload_snapshot_id"], "diagnosis_id": diagnosis["id"], "shapes": tuple(shape for shape in shapes if str(shape["query_shape_id"]) in referenced), "evidence": referenced}
 
     async def _index_metadata(self, inputs: dict[str, Any]) -> dict[str, set[tuple[tuple[str, int], ...]]]:

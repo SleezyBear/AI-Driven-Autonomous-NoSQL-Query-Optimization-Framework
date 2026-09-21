@@ -6,20 +6,21 @@ import { createRun, decideApproval, getRun, listRuns, type RunDetail, type RunSu
 const terminal = new Set(["COMPLETED", "ROLLED_BACK", "ROLLBACK_BLOCKED", "FAILED"]);
 const stages = ["CREATED", "SNAPSHOTTING", "DIAGNOSING", "GENERATING_CANDIDATES", "RANKING", "CALIBRATING", "EVALUATING", "ADMISSION", "ADMITTED", "APPROVAL_PENDING", "APPROVED", "DEPLOYING", "DEPLOYED", "MONITORING", "COMPLETED", "ROLLED_BACK", "ROLLBACK_BLOCKED", "FAILED"];
 
-function outcome(run: RunSummary) {
+export function runOutcome(run: RunSummary) {
   if (run.status !== "COMPLETED") return run.completion_reason ?? run.status;
   if (run.completion_reason === "NO_CANDIDATES") return "Completed safely: no candidates were generated.";
   if (run.completion_reason === "NO_ADMITTED_CANDIDATE") return "Completed safely: no candidate met admission requirements.";
   if (run.completion_reason === "APPROVAL_REJECTED") return "Completed safely: the approval request was rejected.";
+  if (run.completion_reason === "DEPLOYMENT_SUCCEEDED") return "Deployment completed successfully.";
   return run.completion_reason ?? "Deployment completed successfully.";
 }
 
 export function RunsPage() {
   const runs = useQuery({ queryKey: ["runs"], queryFn: listRuns });
-  if (runs.isPending) return <Page>Loading runs…</Page>;
+  if (runs.isPending) return <Page><h1>Runs</h1><p>Loading runs…</p></Page>;
   if (runs.isError) return <Page><h1>Runs</h1><Error error={runs.error} /></Page>;
   if (!runs.data.length) return <Page><h1>Runs</h1><p>No optimization runs have been created.</p><Link to="/runs/new">Create a run</Link></Page>;
-  return <Page><div className="flex justify-between"><h1>Runs</h1><Link to="/runs/new">Create run</Link></div><ul className="mt-5 grid gap-3">{runs.data.map((run) => <li className="rounded border p-4" key={run.run_id}><Link to={`/runs/${run.run_id}`}>{run.status}</Link><p className="text-sm text-slate-600">{run.deployment_mode} · {run.primary_metric_key ?? "No primary metric"}</p><p className="text-sm">{outcome(run)}</p></li>)}</ul></Page>;
+  return <Page><div className="flex justify-between"><h1>Runs</h1><Link to="/runs/new">Create run</Link></div><ul className="mt-5 grid gap-3">{runs.data.map((run) => <li className="rounded border p-4" key={run.run_id}><Link to={`/runs/${run.run_id}`}>{run.status}</Link><p className="text-sm text-slate-600">{run.deployment_mode} · {run.primary_metric_key ?? "No primary metric"}</p><p className="text-sm">{runOutcome(run)}</p></li>)}</ul></Page>;
 }
 
 export function CreateRunPage() {
@@ -38,7 +39,7 @@ export function RunDetailPage() {
 function RunDetailView({ detail }: { detail: RunDetail }) {
   const client = useQueryClient(); const run = detail.run; const artifacts = detail.artifacts as Record<string, Record<string, unknown> | null>; const approval = artifacts.approval;
   const decide = useMutation({ mutationFn: ({ approve }: { approve: boolean }) => decideApproval(String(approval?.id), approve), onSuccess: () => client.invalidateQueries({ queryKey: ["run", run.run_id] }) });
-  return <Page><h1>Optimization run</h1><p className="text-lg font-semibold">{run.status}</p><p>{outcome(run)}</p><ol aria-label="Lifecycle timeline" className="mt-5 grid gap-1 text-sm">{stages.map((stage, index) => <li key={stage} className={stage === run.status ? "font-bold text-blue-700" : index < stages.indexOf(run.status) ? "text-emerald-700" : "text-slate-500"}>{stage === run.status ? "Current: " : index < stages.indexOf(run.status) ? "Completed: " : "Not reached: "}{stage}</li>)}</ol><section className="mt-6"><h2>Evidence</h2><EvidenceCards artifacts={detail.artifacts} /></section>{run.status === "APPROVAL_PENDING" && typeof approval?.id === "string" && <section className="mt-4"><h2>Approval required</h2><p>{String((artifacts.authority ?? {}).authority_reason ?? "Human approval is required.")}</p><button onClick={() => decide.mutate({ approve: true })} disabled={decide.isPending}>Approve</button><button className="ml-2" onClick={() => decide.mutate({ approve: false })} disabled={decide.isPending}>Reject</button>{decide.isError && <Error error={decide.error} />}</section>}</Page>;
+  return <Page><h1>Optimization run</h1><p aria-label="Run status" className="text-lg font-semibold">{run.status}</p><p>{runOutcome(run)}</p><ol aria-label="Lifecycle timeline" className="mt-5 grid gap-1 text-sm">{stages.map((stage, index) => <li key={stage} className={stage === run.status ? "font-bold text-blue-700" : index < stages.indexOf(run.status) ? "text-emerald-700" : "text-slate-500"}>{stage === run.status ? "Current: " : index < stages.indexOf(run.status) ? "Completed: " : "Not reached: "}{stage}</li>)}</ol><section className="mt-6"><h2>Evidence</h2><EvidenceCards artifacts={detail.artifacts} /></section>{run.status === "APPROVAL_PENDING" && typeof approval?.id === "string" && <section className="mt-4"><h2>Approval required</h2><p>{String((artifacts.authority ?? {}).authority_reason ?? "Human approval is required.")}</p><button onClick={() => decide.mutate({ approve: true })} disabled={decide.isPending}>Approve</button><button className="ml-2" onClick={() => decide.mutate({ approve: false })} disabled={decide.isPending}>Reject</button>{decide.isError && <Error error={decide.error} />}</section>}</Page>;
 }
 
 function EvidenceCards({ artifacts }: { artifacts: Record<string, unknown> }) {

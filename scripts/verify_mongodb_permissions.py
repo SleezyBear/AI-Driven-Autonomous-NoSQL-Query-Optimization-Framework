@@ -4,15 +4,17 @@
 from __future__ import annotations
 
 import sys
+import os
 from collections.abc import Callable
 
 from pymongo import MongoClient
 from pymongo.errors import OperationFailure
 
 
-EXECUTOR_URI = (
+EXECUTOR_URI = os.environ.get(
+    "MONGODB_EXECUTOR_URI",
     "mongodb://optimizer_executor:executor_dev_only@127.0.0.1:27017/commerce?"
-    "authSource=admin&directConnection=true"
+    "authSource=admin&directConnection=true",
 )
 
 
@@ -34,6 +36,8 @@ def main() -> int:
     try:
         database.list_collection_names()
         collection.list_indexes().to_list()
+        client.get_database("admin").aggregate([{"$querySettings": {}}]).to_list()
+        print("query settings metadata: ALLOWED")
         must_be_denied("insert", lambda: collection.insert_one({"forbidden": True}))
         must_be_denied("update", lambda: collection.update_one({}, {"$set": {"forbidden": True}}))
         must_be_denied("replace", lambda: collection.replace_one({}, {"forbidden": True}, upsert=True))
@@ -52,4 +56,3 @@ if __name__ == "__main__":
     except (AssertionError, OperationFailure) as error:
         print(f"MongoDB executor permission boundary: FAIL: {error}", file=sys.stderr)
         raise SystemExit(1) from error
-

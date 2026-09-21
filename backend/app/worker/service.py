@@ -43,16 +43,23 @@ class OptimizationJobHandler:
         context.ensure_lease_owned()
         if self._orchestrator is None:
             raise PermanentJobError("DURABLE_ORCHESTRATOR_REQUIRED")
-        try:
-            result = await self._orchestrator.run(UUID(job.optimization_run_id), context)
-        except OrchestrationInvariantError as error:
-            raise PermanentJobError("ORCHESTRATION_INVARIANT_FAILURE") from error
-        if result.outcome is OrchestrationOutcome.BLOCKED:
-            if result.status is models.RunStatus.APPROVAL_PENDING:
-                # The current job is intentionally complete while an external
-                # approver controls the sole continuation job.
+        # One claimed job owns the complete uninterrupted state-machine slice.
+        # Releasing the job after each transition would strand a durable run
+        # without a continuation job. Approval is the only deliberate pause;
+        # its API decision atomically enqueues the sole continuation.
+        for _step in range(32):
+            try:
+                result = await self._orchestrator.run(UUID(job.optimization_run_id), context)
+            except OrchestrationInvariantError as error:
+                raise PermanentJobError("ORCHESTRATION_INVARIANT_FAILURE") from error
+            if result.outcome is OrchestrationOutcome.TERMINAL:
                 return
-            raise RuntimeError(result.blocker or "ORCHESTRATION_TRANSIENT_BLOCK")
+            if result.outcome is OrchestrationOutcome.BLOCKED:
+                if result.status is models.RunStatus.APPROVAL_PENDING:
+                    return
+                raise RuntimeError(result.blocker or "ORCHESTRATION_TRANSIENT_BLOCK")
+            context.ensure_lease_owned()
+        raise PermanentJobError("ORCHESTRATION_STEP_LIMIT_EXCEEDED")
 
 
 class JobDispatcher:
@@ -121,7 +128,7 @@ class WorkerService:
 async def readiness(repository: JobRepository) -> bool:
     """Readiness is limited to reachability of the durable PostgreSQL store."""
     try:
-        return await repository.is_ready()
+        return bool(await repository.is_ready())
     except (OSError, SQLAlchemyError):
         return False
 

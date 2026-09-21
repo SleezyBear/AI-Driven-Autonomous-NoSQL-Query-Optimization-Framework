@@ -33,7 +33,7 @@ if [ "$mongo_host" = "mongo-monitored" ]; then
       admin.createRole({
         role: "optimizerExecutor",
         privileges: [
-          {resource: {cluster: true}, actions: ["serverStatus", "replSetGetStatus", "getParameter", "listDatabases"]},
+          {resource: {cluster: true}, actions: ["serverStatus", "replSetGetStatus", "getParameter", "listDatabases", "querySettings"]},
           {resource: {db: "commerce", collection: ""}, actions: ["find", "listCollections", "listIndexes", "createIndex", "dropIndex", "collStats", "dbStats"]}
         ],
         roles: []
@@ -50,4 +50,3 @@ if [ "$mongo_host" = "mongo-monitored" ]; then
     }
   '
 fi
-

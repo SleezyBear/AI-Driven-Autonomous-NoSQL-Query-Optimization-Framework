@@ -92,10 +92,16 @@ async def test_approval_endpoint_enforces_four_eyes_and_enqueues_once(
     await engine.dispose()
 
     with TestClient(app) as client:
+        detail = client.get(f"/api/v1/runs/{run}", headers=_headers(approver, Role.APPROVER))
+        assert detail.status_code == 200, detail.text
+        assert detail.json()["artifacts"]["approval"]["id"] == str(approval["id"])
         self_approval = client.post(f"/api/v1/approvals/{approval['id']}/approve", headers=_headers(operator, Role.OPERATOR), json={})
         assert self_approval.status_code == 403
         approved = client.post(f"/api/v1/approvals/{approval['id']}/approve", headers=_headers(approver, Role.APPROVER), json={})
         assert approved.status_code == 200, approved.text
+        decided_detail = client.get(f"/api/v1/runs/{run}", headers=_headers(approver, Role.APPROVER))
+        assert decided_detail.status_code == 200, decided_detail.text
+        assert decided_detail.json()["run"]["status"] == "APPROVED"
         duplicate = client.post(f"/api/v1/approvals/{approval['id']}/approve", headers=_headers(approver, Role.APPROVER), json={})
         assert duplicate.status_code == 409
 

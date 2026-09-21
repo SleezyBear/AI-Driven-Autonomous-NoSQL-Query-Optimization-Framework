@@ -136,7 +136,12 @@ class OptimizationRunOrchestrator:
                 execution_context.ensure_lease_owned()
                 # Selection is frozen before controlled benchmark execution. The
                 # isolated executor records real A/A calibration evidence later.
-                await self._evaluation.create_plan_for_run(run_id, BenchmarkProfile.SMOKE, {"aa_calibration_status": "PENDING_MEASUREMENT"})
+                profile = (
+                    BenchmarkProfile.AUTONOMOUS
+                    if str(run["deployment_mode"]) == DeploymentMode.FULL_AUTONOMOUS.value
+                    else BenchmarkProfile.SMOKE
+                )
+                await self._evaluation.create_plan_for_run(run_id, profile, {"aa_calibration_status": "PENDING_MEASUREMENT"})
                 execution_context.ensure_lease_owned()
                 transitioned = await self._runs.transition(run_id, models.RunStatus.EVALUATING)
                 return OrchestrationResult(OrchestrationOutcome.PROGRESSED, _run_status(transitioned["status"]))

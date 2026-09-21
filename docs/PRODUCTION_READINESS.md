@@ -13,9 +13,12 @@ prove that the promised system operated end-to-end against real infrastructure.
 | `INTEGRATION_PASS` | A concrete component boundary was exercised, such as a Docker service, migration, or frontend build. |
 | `SYSTEM_PASS` | A registered no-mocks acceptance test completed an actual end-to-end workflow against applicable infrastructure. |
 
-No original phase currently has a `SYSTEM_PASS`; therefore none is production
-qualified. `scripts/check_system_pass_registry.py` enforces that every future
-`SYSTEM_PASS` has a registered system acceptance test.
+R24 now has a registered `SYSTEM_PASS` backed by a real no-mocks lifecycle
+acceptance. Historical original phases retain their recorded evidence labels.
+`scripts/check_system_pass_registry.py` enforces that every `SYSTEM_PASS` row,
+including remediation-phase identifiers such as `R24`, has a registered system
+acceptance test. Whole-project closure is not yet complete because R28 remains
+outstanding.
 
 ## Remediation status
 
@@ -53,7 +56,11 @@ qualified. `scripts/check_system_pass_registry.py` enforces that every future
 | R21 — supply-chain hardening | COMPLETE — INTEGRATION_PASS | 28 direct and 74 hash-locked Python packages reconstructed under CPython 3.12.14 x86_64; Node 22 `npm ci`/test/build passed; Python and npm audits reported zero vulnerabilities; CycloneDX backend/frontend SBOMs, reviewed secret classifications (zero real secrets), and provenance were generated. |
 | R22 — PostgreSQL operational readiness | COMPLETE — INTEGRATION_PASS | Central bounded pool/timeouts, advisory-locked migrations, fresh and prior-head upgrades, concurrent runners, seven operational indexes, isolated backup/restore with ledger/job/index integrity, and pause/unpause recovery passed. |
 | R23 — MongoDB operational hardening | COMPLETE — INTEGRATION_PASS | Central bounded sync/async clients, production TLS and topology policy, read-only probing, trusted/untrusted CA behavior, isolated executor least privilege, replica election recovery, and outage/restart durability passed. |
-| R24–R28 | NOT STARTED | R24 remains the next adversarial/no-mock qualification boundary; R20–R23 completion is not whole-project production qualification. |
+| R24 — true no-mock system lifecycle | COMPLETE — SYSTEM_PASS | Eight persisted real lifecycle paths passed with real PostgreSQL, MongoDB, Ollama, API, worker, admission, authority, deployment, monitoring, rollback, and real-stack Playwright 3/3. `artifacts/generated/r24-system.json` records `SYSTEM_PASS`; R24 is registered in `docs/SYSTEM_ACCEPTANCE_REGISTRY.json`. |
+| R25 — adversarial/failure qualification | COMPLETE — INTEGRATION_PASS | The adversarial/security/statistical suite passed 129 tests, and the isolated three-member replica partition/election scenario passed majority-retained, election-recovery, majority-loss fail-closed, restoration, and exactly-once reconciliation checks. |
+| R26 — concurrency/load/soak qualification | COMPLETE — INTEGRATION_PASS | Concurrency qualification passed 27 tests. The 60-second soak passed with 4,444 API samples, zero failures, p95 90.83 ms, bounded PostgreSQL/MongoDB connections, and no post-cleanup asyncio/client leak. |
+| R27 — autonomy readiness | COMPLETE — INTEGRATION_PASS | Explicit autonomy/production/monitoring/experience/rollback/reversion recheck passed 46/46, including predeployment evidence binding, autonomy eligibility, mandatory monitoring, ownership-safe rollback, and experience non-authority. |
+| R28 — research/reproducibility closure | NOT STARTED | CommerceBench/NoSQLBench publication runs, B0–B5 ablations, raw exports, figures/tables, manifests, and final reproducibility/final-acceptance closure remain. |
 
 ## Qualification rule
 
