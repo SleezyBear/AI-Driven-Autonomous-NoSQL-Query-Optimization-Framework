@@ -27,7 +27,7 @@ DEFAULT_URI = "mongodb://control_plane_root:control_plane_root_dev_only@localhos
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--uri", default=DEFAULT_URI)
-    parser.add_argument("--output", type=Path, default=ROOT / "benchmarks/results/commercebench-smoke-trials.json")
+    parser.add_argument("--output", type=Path, default=ROOT / "benchmarks/results/commercebench-smoke-trials.jsonl")
     arguments = parser.parse_args()
     executor = RealMongoBenchmarkExecutor(arguments.uri, settings=BenchmarkExecutionSettings(warmup_operations=10, measurement_operations=50))
     baseline, candidate = executor.run_pair(

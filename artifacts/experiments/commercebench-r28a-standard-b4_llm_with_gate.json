@@ -1,0 +1,29 @@
+{
+  "command": [
+    "/Users/mac/dev/AI-Driven-Autonomous-NoSQL-Query-Optimization-Framework/nosql/bin/python",
+    "scripts/run_commercebench_profile.py",
+    "--profile",
+    "standard",
+    "--mode",
+    "B4_LLM_WITH_GATE",
+    "--uri",
+    "mongodb://control_plane_root:control_plane_root_dev_only@127.0.0.1:27018/?authSource=admin&directConnection=true",
+    "--output",
+    "artifacts/experiments/commercebench-r28a-standard-b4_llm_with_gate-trials.jsonl",
+    "--pair-id",
+    "commercebench-r28a-standard-b4_llm_with_gate"
+  ],
+  "evidence": "artifacts/experiments/commercebench-r28a-standard-b4_llm_with_gate-trials.jsonl",
+  "failure_reason": null,
+  "finished_at": "2026-09-21T18:40:11.602188+00:00",
+  "kind": "commercebench",
+  "mode": "B4_LLM_WITH_GATE",
+  "name": "commercebench-r28a-standard-b4_llm_with_gate",
+  "profile": "standard",
+  "required": true,
+  "returncode": 0,
+  "started_at": "2026-09-21T18:38:17.142532+00:00",
+  "status": "PASSED",
+  "stderr_log": "artifacts/experiments/commercebench-r28a-standard-b4_llm_with_gate.stderr.log",
+  "stdout_log": "artifacts/experiments/commercebench-r28a-standard-b4_llm_with_gate.stdout.log"
+}

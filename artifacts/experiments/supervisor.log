@@ -1,0 +1,28 @@
+/Users/mac/dev/AI-Driven-Autonomous-NoSQL-Query-Optimization-Framework/scripts/supervisor.py:25: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  return datetime.utcnow().isoformat() + "Z"
+Supervisor started; waiting for commercebench orchestration to finish...
+Detected orchestrator finished, launching follow-up
+Launching follow-up orchestrator with SafetyBench and NoSQLBench enabled
+Launched follow-up orchestrator pid=30664
+Supervisor exiting after launching follow-up orchestrator
+/Users/mac/dev/AI-Driven-Autonomous-NoSQL-Query-Optimization-Framework/scripts/experiment_orchestrator.py:54: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  return datetime.utcnow().isoformat() + "Z"
+/Users/mac/dev/AI-Driven-Autonomous-NoSQL-Query-Optimization-Framework/scripts/experiment_orchestrator.py:54: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  return datetime.utcnow().isoformat() + "Z"
+Skipping commercebench-standard-b0_native: evidence exists at artifacts/experiments/commercebench-standard-b0_native-trials.jsonl
+Skipping commercebench-standard-b1_deterministic_no_gate: evidence exists at artifacts/experiments/commercebench-standard-b1_deterministic_no_gate-trials.jsonl
+Skipping commercebench-standard-b2_llm_rank_no_gate: evidence exists at artifacts/experiments/commercebench-standard-b2_llm_rank_no_gate-trials.jsonl
+Skipping commercebench-standard-b3_deterministic_with_gate: evidence exists at artifacts/experiments/commercebench-standard-b3_deterministic_with_gate-trials.jsonl
+Skipping commercebench-standard-b4_llm_with_gate: evidence exists at artifacts/experiments/commercebench-standard-b4_llm_with_gate-trials.jsonl
+Skipping commercebench-standard-b5_full_with_experience: evidence exists at artifacts/experiments/commercebench-standard-b5_full_with_experience-trials.jsonl
+Skipping commercebench-publication-b0_native: evidence exists at artifacts/experiments/commercebench-publication-b0_native-trials.jsonl
+Skipping commercebench-publication-b1_deterministic_no_gate: evidence exists at artifacts/experiments/commercebench-publication-b1_deterministic_no_gate-trials.jsonl
+Skipping commercebench-publication-b2_llm_rank_no_gate: evidence exists at artifacts/experiments/commercebench-publication-b2_llm_rank_no_gate-trials.jsonl
+Skipping commercebench-publication-b3_deterministic_with_gate: evidence exists at artifacts/experiments/commercebench-publication-b3_deterministic_with_gate-trials.jsonl
+Skipping commercebench-publication-b4_llm_with_gate: evidence exists at artifacts/experiments/commercebench-publication-b4_llm_with_gate-trials.jsonl
+Skipping commercebench-publication-b5_full_with_experience: evidence exists at artifacts/experiments/commercebench-publication-b5_full_with_experience-trials.jsonl
+Running SafetyBench tests as part of orchestration
+SafetyBench finished rc=1
+Running NoSQLBench workloads via docker compose --profile bench run --rm nosqlbench
+NoSQLBench finished rc=1
+Orchestration complete

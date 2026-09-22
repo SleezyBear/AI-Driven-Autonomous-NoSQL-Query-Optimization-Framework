@@ -1,0 +1,68 @@
+{
+  "candidates": [
+    {
+      "collection": "orders",
+      "keys": [
+        [
+          "customer_id",
+          1
+        ],
+        [
+          "_id",
+          -1
+        ]
+      ],
+      "label": "C1",
+      "name": "optimizer_df0e1f006e9d73d8"
+    },
+    {
+      "collection": "products",
+      "keys": [
+        [
+          "category",
+          1
+        ]
+      ],
+      "label": "C2",
+      "name": "optimizer_381569df2945fa72"
+    },
+    {
+      "collection": "inventory",
+      "keys": [
+        [
+          "product_id",
+          1
+        ]
+      ],
+      "label": "C3",
+      "name": "optimizer_447c15fefd92ac06"
+    }
+  ],
+  "deterministic_candidates": true,
+  "experience_invoked": false,
+  "experience_memory": false,
+  "llm_ranking": true,
+  "mode": "B2_LLM_RANK_NO_GATE",
+  "ranking_order": [
+    "C1",
+    "C2",
+    "C3"
+  ],
+  "safety_gate": false,
+  "sandbox_only": true,
+  "selected_index": {
+    "collection": "orders",
+    "keys": [
+      [
+        "customer_id",
+        1
+      ],
+      [
+        "_id",
+        -1
+      ]
+    ],
+    "label": "C1",
+    "name": "optimizer_df0e1f006e9d73d8"
+  }
+}

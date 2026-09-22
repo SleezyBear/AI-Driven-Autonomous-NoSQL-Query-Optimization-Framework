@@ -1,0 +1,4 @@
+nosqlbench-smoke-cycle=0
+nosqlbench-smoke-cycle=1
+nosqlbench-smoke-cycle=2
+/workloads/smoke.yaml (pending,current,complete)=(0,0,3) 100.00% (last report)

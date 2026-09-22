@@ -1,0 +1,21 @@
+{
+  "dataset_fingerprint": "9f103bccb584a7152a3f2ad476a25c3aab784b0559c017f978726c0ab0b8dba2",
+  "expected_collection_counts": {
+    "customers": 100000,
+    "events": 2000000,
+    "inventory": 150000,
+    "orders": 1000000,
+    "products": 50000
+  },
+  "generator_version": "2",
+  "observed_collection_counts": {
+    "customers": 100000,
+    "events": 2000000,
+    "inventory": 150000,
+    "orders": 1000000,
+    "products": 50000
+  },
+  "profile": "publication",
+  "seed": 42,
+  "workload_fingerprint": "3a7f980ea96972ff520a5d357de7dcf69ec7cffe4d1abeedda681316acd96101"
+}

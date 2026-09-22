@@ -1,0 +1,24 @@
+{
+  "command": [
+    "docker",
+    "compose",
+    "--profile",
+    "bench",
+    "run",
+    "--rm",
+    "nosqlbench-smoke"
+  ],
+  "evidence": "artifacts/experiments/nosqlbench-r28a.json",
+  "failure_reason": null,
+  "finished_at": "2026-09-21T18:43:13.687874+00:00",
+  "kind": "nosqlbench",
+  "mode": null,
+  "name": "nosqlbench-r28a",
+  "profile": null,
+  "required": true,
+  "returncode": 0,
+  "started_at": "2026-09-21T18:43:06.577963+00:00",
+  "status": "PASSED",
+  "stderr_log": "artifacts/experiments/nosqlbench-r28a.stderr.log",
+  "stdout_log": "artifacts/experiments/nosqlbench-r28a.stdout.log"
+}

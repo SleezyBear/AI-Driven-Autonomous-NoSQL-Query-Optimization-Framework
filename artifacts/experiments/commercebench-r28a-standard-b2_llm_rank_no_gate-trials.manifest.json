@@ -1,0 +1,108 @@
+{
+  "arm_order": "AB",
+  "created_at": "2026-09-21T18:37:20.921750+00:00",
+  "dataset": {
+    "dataset_fingerprint": "c1c16b36c3290276df9e495a20b585dfab57f29572caba401c0b972ab7312cd5",
+    "expected_collection_counts": {
+      "customers": 20000,
+      "events": 500000,
+      "inventory": 30000,
+      "orders": 200000,
+      "products": 10000
+    },
+    "generator_version": "2",
+    "observed_collection_counts": {
+      "customers": 20000,
+      "events": 500000,
+      "inventory": 30000,
+      "orders": 200000,
+      "products": 10000
+    },
+    "profile": "standard",
+    "seed": 42,
+    "workload_fingerprint": "3a7f980ea96972ff520a5d357de7dcf69ec7cffe4d1abeedda681316acd96101"
+  },
+  "experiment_id": "commercebench-r28a-standard-b2_llm_rank_no_gate",
+  "measurement": {
+    "measurement": 200,
+    "unit": "operations",
+    "warmup": 30
+  },
+  "mode": "B2_LLM_RANK_NO_GATE",
+  "observed_at_materialization": {
+    "customers": 20000,
+    "events": 500000,
+    "inventory": 30000,
+    "orders": 200000,
+    "products": 10000
+  },
+  "plan": {
+    "candidates": [
+      {
+        "collection": "orders",
+        "keys": [
+          [
+            "customer_id",
+            1
+          ],
+          [
+            "_id",
+            -1
+          ]
+        ],
+        "label": "C1",
+        "name": "optimizer_df0e1f006e9d73d8"
+      },
+      {
+        "collection": "products",
+        "keys": [
+          [
+            "category",
+            1
+          ]
+        ],
+        "label": "C2",
+        "name": "optimizer_381569df2945fa72"
+      },
+      {
+        "collection": "inventory",
+        "keys": [
+          [
+            "product_id",
+            1
+          ]
+        ],
+        "label": "C3",
+        "name": "optimizer_447c15fefd92ac06"
+      }
+    ],
+    "deterministic_candidates": true,
+    "experience_invoked": false,
+    "experience_memory": false,
+    "llm_ranking": true,
+    "mode": "B2_LLM_RANK_NO_GATE",
+    "ranking_order": [
+      "C1",
+      "C2",
+      "C3"
+    ],
+    "safety_gate": false,
+    "sandbox_only": true,
+    "selected_index": {
+      "collection": "orders",
+      "keys": [
+        [
+          "customer_id",
+          1
+        ],
+        [
+          "_id",
+          -1
+        ]
+      ],
+      "label": "C1",
+      "name": "optimizer_df0e1f006e9d73d8"
+    }
+  },
+  "profile": "standard"
+}

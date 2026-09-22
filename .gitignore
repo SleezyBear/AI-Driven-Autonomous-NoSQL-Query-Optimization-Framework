@@ -1,4 +1,5 @@
 /nosql/
+/.venv_r28/
 /.dependency-wheel-test/
 /.secrets/
 /.demo/

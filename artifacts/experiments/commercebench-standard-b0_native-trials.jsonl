@@ -1,0 +1,62 @@
+[
+  {
+    "arm": "baseline",
+    "arm_order": "AB",
+    "dataset_fingerprint": "c1c16b36c3290276df9e495a20b585dfab57f29572caba401c0b972ab7312cd5",
+    "environment": {
+      "mongodb_version": "8.0.29",
+      "replica_set": "rs-evaluation"
+    },
+    "generator_version": "2",
+    "initial_dataset_fingerprint": "c1c16b36c3290276df9e495a20b585dfab57f29572caba401c0b972ab7312cd5",
+    "measurement": {
+      "counter_deltas": {
+        "cpu_utilization": 0.0,
+        "disk_io_bytes_per_op": 1.045,
+        "disk_utilization": 0.0,
+        "memory_utilization": 0.0,
+        "network_bytes_per_op": 1228.085
+      },
+      "elapsed_seconds": 2.0125117679999676,
+      "error_count": 0,
+      "p50_latency_ms": 2.4867850006558,
+      "p95_latency_ms": 34.99338404944865,
+      "p99_latency_ms": 36.82492913736495,
+      "successful_operations": 200,
+      "throughput_successful_ops_per_second": 99.37830087759428,
+      "timeout_count": 0
+    },
+    "pair_id": "commercebench-standard-b0_native",
+    "seed": 42
+  },
+  {
+    "arm": "candidate",
+    "arm_order": "AB",
+    "dataset_fingerprint": "c1c16b36c3290276df9e495a20b585dfab57f29572caba401c0b972ab7312cd5",
+    "environment": {
+      "mongodb_version": "8.0.29",
+      "replica_set": "rs-evaluation"
+    },
+    "generator_version": "2",
+    "initial_dataset_fingerprint": "c1c16b36c3290276df9e495a20b585dfab57f29572caba401c0b972ab7312cd5",
+    "measurement": {
+      "counter_deltas": {
+        "cpu_utilization": 0.0,
+        "disk_io_bytes_per_op": 1.01,
+        "disk_utilization": 0.0,
+        "memory_utilization": 0.0,
+        "network_bytes_per_op": 1149.99
+      },
+      "elapsed_seconds": 1.948748908995185,
+      "error_count": 0,
+      "p50_latency_ms": 2.4194950092351064,
+      "p95_latency_ms": 33.7293087184662,
+      "p99_latency_ms": 34.38696282886667,
+      "successful_operations": 200,
+      "throughput_successful_ops_per_second": 102.6299484129662,
+      "timeout_count": 0
+    },
+    "pair_id": "commercebench-standard-b0_native",
+    "seed": 42
+  }
+]

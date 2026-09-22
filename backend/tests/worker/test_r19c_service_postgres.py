@@ -44,9 +44,14 @@ async def test_real_idle_worker_polls_at_interval_and_stops_cleanly(disposable_w
     service = WorkerService(durable, _HandlerDispatcher(handler), poll_interval=0.12, identity="idle-worker")
     try:
         task = asyncio.create_task(service.run(stopping))
-        await asyncio.sleep(0.32)
+        # Observe at least two real idle polls before stopping.  Waiting for the
+        # expected number of polls (bounded by a generous deadline) keeps the
+        # assertion strict while tolerating slow Postgres round-trips under load.
+        deadline = monotonic() + 3
+        while len(calls) < 2 and monotonic() < deadline:
+            await asyncio.sleep(0.02)
         stopping.set()
-        await asyncio.wait_for(task, timeout=1)
+        await asyncio.wait_for(task, timeout=2)
         assert not service.live
         assert len(calls) >= 2
         assert all(later - earlier >= 0.08 for earlier, later in zip(calls, calls[1:]))

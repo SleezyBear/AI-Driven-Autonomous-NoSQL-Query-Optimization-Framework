@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any
@@ -37,3 +39,13 @@ COMMERCEBENCH_WORKLOADS: tuple[WorkloadShape, ...] = (
 def mixed_workload_shapes() -> tuple[WorkloadShape, ...]:
     """Return the frozen workload mixture; reads and writes are both mandatory."""
     return COMMERCEBENCH_WORKLOADS
+
+
+def workload_fingerprint() -> str:
+    """Content-derived fingerprint of the frozen workload schedule and weights."""
+    payload = [
+        {"name": shape.name, "kind": shape.kind.value, "collection": shape.collection, "weight": shape.weight, "operation": shape.operation}
+        for shape in COMMERCEBENCH_WORKLOADS
+    ]
+    serialized = json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+    return hashlib.sha256(serialized.encode("utf-8")).hexdigest()

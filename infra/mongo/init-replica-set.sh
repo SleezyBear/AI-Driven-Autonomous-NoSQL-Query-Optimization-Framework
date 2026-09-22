@@ -18,24 +18,40 @@ if [ "$mongo_host" = "mongo-monitored" ]; then
     const admin = db.getSiblingDB("admin");
     const commerce = db.getSiblingDB("commerce");
 
+    // The declared role definitions are authoritative for both new and existing
+    // databases: create when absent, reconcile (updateRole) when present so a
+    // retained volume converges to the same privileges as a fresh environment.
+    const observerPrivileges = [
+      {resource: {cluster: true}, actions: ["serverStatus", "replSetGetStatus", "getParameter", "listDatabases"]},
+      {resource: {db: "commerce", collection: ""}, actions: ["find", "listCollections", "listIndexes", "collStats", "dbStats"]},
+      {resource: {db: "admin", collection: ""}, actions: ["enableProfiler"]}
+    ];
+    const executorPrivileges = [
+      {resource: {cluster: true}, actions: ["serverStatus", "replSetGetStatus", "getParameter", "listDatabases", "querySettings"]},
+      {resource: {db: "commerce", collection: ""}, actions: ["find", "listCollections", "listIndexes", "createIndex", "dropIndex", "collStats", "dbStats"]}
+    ];
+
     if (admin.getRole("optimizerObserver") === null) {
       admin.createRole({
         role: "optimizerObserver",
-        privileges: [
-          {resource: {cluster: true}, actions: ["serverStatus", "replSetGetStatus", "getParameter", "listDatabases"]},
-          {resource: {db: "commerce", collection: ""}, actions: ["find", "listCollections", "listIndexes", "collStats", "dbStats"]},
-          {resource: {db: "admin", collection: ""}, actions: ["enableProfiler"]}
-        ],
+        privileges: observerPrivileges,
+        roles: []
+      });
+    } else {
+      admin.updateRole("optimizerObserver", {
+        privileges: observerPrivileges,
         roles: []
       });
     }
     if (admin.getRole("optimizerExecutor") === null) {
       admin.createRole({
         role: "optimizerExecutor",
-        privileges: [
-          {resource: {cluster: true}, actions: ["serverStatus", "replSetGetStatus", "getParameter", "listDatabases", "querySettings"]},
-          {resource: {db: "commerce", collection: ""}, actions: ["find", "listCollections", "listIndexes", "createIndex", "dropIndex", "collStats", "dbStats"]}
-        ],
+        privileges: executorPrivileges,
+        roles: []
+      });
+    } else {
+      admin.updateRole("optimizerExecutor", {
+        privileges: executorPrivileges,
         roles: []
       });
     }

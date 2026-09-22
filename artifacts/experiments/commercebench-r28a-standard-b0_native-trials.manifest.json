@@ -1,0 +1,52 @@
+{
+  "arm_order": "AB",
+  "created_at": "2026-09-21T18:33:49.905051+00:00",
+  "dataset": {
+    "dataset_fingerprint": "c1c16b36c3290276df9e495a20b585dfab57f29572caba401c0b972ab7312cd5",
+    "expected_collection_counts": {
+      "customers": 20000,
+      "events": 500000,
+      "inventory": 30000,
+      "orders": 200000,
+      "products": 10000
+    },
+    "generator_version": "2",
+    "observed_collection_counts": {
+      "customers": 20000,
+      "events": 500000,
+      "inventory": 30000,
+      "orders": 200000,
+      "products": 10000
+    },
+    "profile": "standard",
+    "seed": 42,
+    "workload_fingerprint": "3a7f980ea96972ff520a5d357de7dcf69ec7cffe4d1abeedda681316acd96101"
+  },
+  "experiment_id": "commercebench-r28a-standard-b0_native",
+  "measurement": {
+    "measurement": 200,
+    "unit": "operations",
+    "warmup": 30
+  },
+  "mode": "B0_NATIVE",
+  "observed_at_materialization": {
+    "customers": 20000,
+    "events": 500000,
+    "inventory": 30000,
+    "orders": 200000,
+    "products": 10000
+  },
+  "plan": {
+    "candidates": [],
+    "deterministic_candidates": false,
+    "experience_invoked": false,
+    "experience_memory": false,
+    "llm_ranking": false,
+    "mode": "B0_NATIVE",
+    "ranking_order": [],
+    "safety_gate": false,
+    "sandbox_only": true,
+    "selected_index": null
+  },
+  "profile": "standard"
+}

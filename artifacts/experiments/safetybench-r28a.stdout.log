@@ -1,0 +1,11 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.14, pytest-9.0.3, pluggy-1.6.0
+rootdir: /Users/mac/dev/AI-Driven-Autonomous-NoSQL-Query-Optimization-Framework/backend
+configfile: pyproject.toml
+plugins: cov-5.0.0, asyncio-1.3.0, anyio-4.15.1
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=function, asyncio_default_test_loop_scope=function
+collected 11 items
+
+backend/tests/safetybench/test_scenarios.py ...........                  [100%]
+
+============================== 11 passed in 0.05s ==============================

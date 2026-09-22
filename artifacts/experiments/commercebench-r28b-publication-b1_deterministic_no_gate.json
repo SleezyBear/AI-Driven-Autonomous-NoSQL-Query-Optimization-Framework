@@ -1,0 +1,29 @@
+{
+  "command": [
+    "/Users/mac/dev/AI-Driven-Autonomous-NoSQL-Query-Optimization-Framework/nosql/bin/python",
+    "scripts/run_commercebench_profile.py",
+    "--profile",
+    "publication",
+    "--mode",
+    "B1_DETERMINISTIC_NO_GATE",
+    "--uri",
+    "mongodb://control_plane_root:control_plane_root_dev_only@127.0.0.1:27018/?authSource=admin&directConnection=true",
+    "--output",
+    "artifacts/experiments/commercebench-r28b-publication-b1_deterministic_no_gate",
+    "--pair-id",
+    "commercebench-r28b-publication-b1_deterministic_no_gate"
+  ],
+  "evidence": "artifacts/experiments/commercebench-r28b-publication-b1_deterministic_no_gate",
+  "failure_reason": null,
+  "finished_at": "2026-09-21T23:33:04.196936+00:00",
+  "kind": "commercebench",
+  "mode": "B1_DETERMINISTIC_NO_GATE",
+  "name": "commercebench-r28b-publication-b1_deterministic_no_gate",
+  "profile": "publication",
+  "required": true,
+  "returncode": 0,
+  "started_at": "2026-09-21T20:48:35.657356+00:00",
+  "status": "PASSED",
+  "stderr_log": "artifacts/experiments/commercebench-r28b-publication-b1_deterministic_no_gate.stderr.log",
+  "stdout_log": "artifacts/experiments/commercebench-r28b-publication-b1_deterministic_no_gate.stdout.log"
+}

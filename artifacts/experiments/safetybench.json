@@ -1,0 +1,6 @@
+{
+  "returncode": 1,
+  "stdout": "",
+  "stderr": "/Users/mac/dev/AI-Driven-Autonomous-NoSQL-Query-Optimization-Framework/.venv_r28/bin/python: No module named pytest\n",
+  "finished_at": "2026-09-21T17:06:03.312875Z"
+}

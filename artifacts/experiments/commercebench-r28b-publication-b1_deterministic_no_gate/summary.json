@@ -1,0 +1,188 @@
+{
+  "aa_pair_count": 12,
+  "admission": {
+    "actual_pair_count": 15,
+    "candidate_id": "optimizer_df0e1f006e9d73d8",
+    "evaluation_run_id": "commercebench-r28b-publication-b1_deterministic_no_gate",
+    "family_wise_passed": true,
+    "family_wise_upper_bound": -3.801632316830286,
+    "primary_benefit_result": {
+      "allowed_regression_original_units": 8.040848999110647,
+      "allowed_regression_transformed": 0.04879016416943205,
+      "baseline_reference": 160.81697998221293,
+      "benefit_passed": true,
+      "bootstrap_sample_count": 10000,
+      "comparison_mode": "LOG_RATIO",
+      "confidence_level": 0.95,
+      "direction": "LOWER_IS_BETTER",
+      "failure_reason": null,
+      "lower_confidence_bound": 3.7524295573743918,
+      "metric_key": "p99_latency_ms",
+      "minimum_meaningful_improvement": 0.05,
+      "pair_count": 15,
+      "passed": true,
+      "point_estimate_transformed": -3.7721965017526085,
+      "primary_benefit_lower_ci": 3.7524295573743918,
+      "scope_id": "all",
+      "scope_type": "GLOBAL",
+      "transformed_minimum_benefit": 0.05129329438755048,
+      "upper_confidence_bound": -3.7524295573743918
+    },
+    "primary_metric_key": "p99_latency_ms",
+    "production_eligible": false,
+    "profile": "PUBLICATION",
+    "protected_metric_results": [
+      {
+        "allowed_regression_original_units": 8.040848999110647,
+        "allowed_regression_transformed": 0.04879016416943205,
+        "baseline_reference": 160.81697998221293,
+        "benefit_passed": null,
+        "bootstrap_sample_count": 10000,
+        "comparison_mode": "LOG_RATIO",
+        "confidence_level": 0.95,
+        "direction": "LOWER_IS_BETTER",
+        "failure_reason": null,
+        "lower_confidence_bound": -3.791780229919471,
+        "metric_key": "p99_latency_ms",
+        "minimum_meaningful_improvement": null,
+        "pair_count": 15,
+        "passed": true,
+        "point_estimate_transformed": -3.7721965017526085,
+        "primary_benefit_lower_ci": null,
+        "scope_id": "all",
+        "scope_type": "GLOBAL",
+        "transformed_minimum_benefit": null,
+        "upper_confidence_bound": -3.7524295573743918
+      }
+    ],
+    "reason_codes": [],
+    "required_pair_count": 15,
+    "safety_invariant_results": [],
+    "status": "ADMITTED"
+  },
+  "candidate_pair_count": 15,
+  "created_at": "2026-09-21T22:01:54.670768+00:00",
+  "dataset": {
+    "dataset_fingerprint": "9f103bccb584a7152a3f2ad476a25c3aab784b0559c017f978726c0ab0b8dba2",
+    "expected_collection_counts": {
+      "customers": 100000,
+      "events": 2000000,
+      "inventory": 150000,
+      "orders": 1000000,
+      "products": 50000
+    },
+    "generator_version": "2",
+    "observed_collection_counts": {
+      "customers": 100000,
+      "events": 2000000,
+      "inventory": 150000,
+      "orders": 1000000,
+      "products": 50000
+    },
+    "profile": "publication",
+    "seed": 42,
+    "workload_fingerprint": "3a7f980ea96972ff520a5d357de7dcf69ec7cffe4d1abeedda681316acd96101"
+  },
+  "environment": {
+    "mongodb_version": "8.0.29",
+    "replica_set": "rs-evaluation"
+  },
+  "experiment_id": "commercebench-r28b-publication-b1_deterministic_no_gate",
+  "gate_enabled": false,
+  "mode": "B1_DETERMINISTIC_NO_GATE",
+  "plan": {
+    "candidates": [
+      {
+        "collection": "orders",
+        "keys": [
+          [
+            "customer_id",
+            1
+          ],
+          [
+            "_id",
+            -1
+          ]
+        ],
+        "label": "C1",
+        "name": "optimizer_df0e1f006e9d73d8"
+      },
+      {
+        "collection": "products",
+        "keys": [
+          [
+            "category",
+            1
+          ]
+        ],
+        "label": "C2",
+        "name": "optimizer_381569df2945fa72"
+      },
+      {
+        "collection": "inventory",
+        "keys": [
+          [
+            "product_id",
+            1
+          ]
+        ],
+        "label": "C3",
+        "name": "optimizer_447c15fefd92ac06"
+      }
+    ],
+    "deterministic_candidates": true,
+    "experience_invoked": false,
+    "experience_memory": false,
+    "llm_ranking": false,
+    "mode": "B1_DETERMINISTIC_NO_GATE",
+    "ranking_order": [
+      "C1",
+      "C2",
+      "C3"
+    ],
+    "safety_gate": false,
+    "sandbox_only": true,
+    "selected_index": {
+      "collection": "orders",
+      "keys": [
+        [
+          "customer_id",
+          1
+        ],
+        [
+          "_id",
+          -1
+        ]
+      ],
+      "label": "C1",
+      "name": "optimizer_df0e1f006e9d73d8"
+    }
+  },
+  "profile": "publication",
+  "protocol": {
+    "aa_pairs": 12,
+    "bootstrap_samples": 10000,
+    "confidence": 0.95,
+    "maximum_candidate_pairs": 40,
+    "measurement_seconds": 120,
+    "minimum_candidate_pairs": 15,
+    "production_eligible": false,
+    "profile": "PUBLICATION",
+    "warmup_seconds": 60
+  },
+  "provenance": {
+    "dirty": "M .gitignore\n M Makefile\n M benchmarks/commercebench/workloads.py\n M benchmarks/mongodb_executor.py\n M scripts/run_commercebench_smoke.py\n?? artifacts/\n?? backend/tests/r28/\n?? benchmarks/ablations.py\n?? benchmarks/commercebench/validation.py\n?? benchmarks/evidence.py\n?? benchmarks/orchestration.py\n?? benchmarks/publication.py\n?? benchmarks/r28_runner.py\n?? benchmarks/reset.py\n?? docs/R28_EXECUTION_HANDOFF.md\n?? scripts/benchmark_reset.py\n?? scripts/check_r28_authoritative_evidence.py\n?? scripts/experiment_orchestrator.py\n?? scripts/generate_exports.py\n?? scripts/invalidate_r28_evidence.py\n?? scripts/invalidate_r28a_publication.py\n?? scripts/publication_repro.py\n?? scripts/run_commercebench_profile.py\n?? scripts/supervisor.py\n?? scripts/verify_r28_preflight.py",
+    "revision": "d471465b375f5c924309479084b4ccfb6a6aa0cb"
+  },
+  "required_pairs": 15,
+  "reset_implementation": "delta",
+  "reset_timings": {
+    "reset_count": 24,
+    "reset_implementation": "delta",
+    "reset_seconds_max": 1.532802375004394,
+    "reset_seconds_mean": 0.9494392866254202,
+    "reset_seconds_total": 22.786542879010085
+  },
+  "sampling_status": "SAMPLING_COMPLETE",
+  "sandbox_only": true
+}

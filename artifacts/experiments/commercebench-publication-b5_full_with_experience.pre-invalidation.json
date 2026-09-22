@@ -1,0 +1,14 @@
+{
+  "experiment_id": "commercebench-publication-b5_full_with_experience",
+  "profile": "publication",
+  "mode": "B5_FULL_WITH_EXPERIENCE",
+  "mongo_uri": "mongodb://control_plane_root:control_plane_root_dev_only@127.0.0.1:27018/?authSource=admin&directConnection=true",
+  "created_at": "2026-09-21T17:03:49.663253Z",
+  "status": "COMPLETED",
+  "command": ".venv_r28/bin/python scripts/run_commercebench_profile.py --profile publication --uri mongodb://control_plane_root:control_plane_root_dev_only@127.0.0.1:27018/?authSource=admin&directConnection=true --output artifacts/experiments/commercebench-publication-b5_full_with_experience-trials.jsonl --pair-id commercebench-publication-b5_full_with_experience --arm-order AB",
+  "started_at": "2026-09-21T17:03:49.664966Z",
+  "finished_at": "2026-09-21T17:05:34.583163Z",
+  "returncode": 0,
+  "stdout": "evidence=artifacts/experiments/commercebench-publication-b5_full_with_experience-trials.jsonl\n",
+  "stderr": ""
+}

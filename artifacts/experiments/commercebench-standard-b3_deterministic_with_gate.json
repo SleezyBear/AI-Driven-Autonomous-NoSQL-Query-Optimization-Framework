@@ -1,0 +1,23 @@
+{
+  "experiment_id": "commercebench-standard-b3_deterministic_with_gate",
+  "profile": "standard",
+  "mode": "B3_DETERMINISTIC_WITH_GATE",
+  "mongo_uri": "mongodb://control_plane_root:control_plane_root_dev_only@127.0.0.1:27018/?authSource=admin&directConnection=true",
+  "created_at": "2026-09-21T16:52:13.461609Z",
+  "status": "INVALID",
+  "command": ".venv_r28/bin/python scripts/run_commercebench_profile.py --profile standard --uri mongodb://control_plane_root:control_plane_root_dev_only@127.0.0.1:27018/?authSource=admin&directConnection=true --output artifacts/experiments/commercebench-standard-b3_deterministic_with_gate-trials.jsonl --pair-id commercebench-standard-b3_deterministic_with_gate --arm-order AB",
+  "started_at": "2026-09-21T16:52:13.462322Z",
+  "finished_at": "2026-09-21T16:52:40.353297Z",
+  "returncode": 0,
+  "stdout": "evidence=artifacts/experiments/commercebench-standard-b3_deterministic_with_gate-trials.jsonl\n",
+  "stderr": "",
+  "original_status": "INVALID",
+  "classification": "INVALID_NONAUTHORITATIVE_R28_RUN",
+  "invalid_reasons": [
+    "publication_seconds_treated_as_operation_counts",
+    "b0_b5_behavioral_modes_not_wired",
+    "required_aa_calibration_absent",
+    "required_candidate_pair_sampling_absent"
+  ],
+  "invalidated_at": "2026-09-22T14:00:59.200947+00:00"
+}

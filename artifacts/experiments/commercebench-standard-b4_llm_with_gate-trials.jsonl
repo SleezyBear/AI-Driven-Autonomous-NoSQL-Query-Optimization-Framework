@@ -1,0 +1,62 @@
+[
+  {
+    "arm": "baseline",
+    "arm_order": "AB",
+    "dataset_fingerprint": "c1c16b36c3290276df9e495a20b585dfab57f29572caba401c0b972ab7312cd5",
+    "environment": {
+      "mongodb_version": "8.0.29",
+      "replica_set": "rs-evaluation"
+    },
+    "generator_version": "2",
+    "initial_dataset_fingerprint": "c1c16b36c3290276df9e495a20b585dfab57f29572caba401c0b972ab7312cd5",
+    "measurement": {
+      "counter_deltas": {
+        "cpu_utilization": 0.0,
+        "disk_io_bytes_per_op": 1.05,
+        "disk_utilization": 0.0,
+        "memory_utilization": 0.0,
+        "network_bytes_per_op": 1232.455
+      },
+      "elapsed_seconds": 2.288010762014892,
+      "error_count": 0,
+      "p50_latency_ms": 3.025687503395602,
+      "p95_latency_ms": 38.87868706078734,
+      "p99_latency_ms": 44.209974867408135,
+      "successful_operations": 200,
+      "throughput_successful_ops_per_second": 87.41217625387125,
+      "timeout_count": 0
+    },
+    "pair_id": "commercebench-standard-b4_llm_with_gate",
+    "seed": 42
+  },
+  {
+    "arm": "candidate",
+    "arm_order": "AB",
+    "dataset_fingerprint": "c1c16b36c3290276df9e495a20b585dfab57f29572caba401c0b972ab7312cd5",
+    "environment": {
+      "mongodb_version": "8.0.29",
+      "replica_set": "rs-evaluation"
+    },
+    "generator_version": "2",
+    "initial_dataset_fingerprint": "c1c16b36c3290276df9e495a20b585dfab57f29572caba401c0b972ab7312cd5",
+    "measurement": {
+      "counter_deltas": {
+        "cpu_utilization": 0.0,
+        "disk_io_bytes_per_op": 1.04,
+        "disk_utilization": 0.0,
+        "memory_utilization": 0.0,
+        "network_bytes_per_op": 1223.625
+      },
+      "elapsed_seconds": 2.2290773109998554,
+      "error_count": 0,
+      "p50_latency_ms": 2.728553503402509,
+      "p95_latency_ms": 38.54600829217816,
+      "p99_latency_ms": 41.71965545450803,
+      "successful_operations": 200,
+      "throughput_successful_ops_per_second": 89.72322270432592,
+      "timeout_count": 0
+    },
+    "pair_id": "commercebench-standard-b4_llm_with_gate",
+    "seed": 42
+  }
+]

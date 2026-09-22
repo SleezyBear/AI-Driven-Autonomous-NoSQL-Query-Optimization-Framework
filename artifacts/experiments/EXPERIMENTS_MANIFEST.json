@@ -1,0 +1,105 @@
+{
+  "started_at": "2026-09-21T17:05:39.200781Z",
+  "profiles": [
+    "standard",
+    "publication"
+  ],
+  "modes": [
+    "B0_NATIVE",
+    "B1_DETERMINISTIC_NO_GATE",
+    "B2_LLM_RANK_NO_GATE",
+    "B3_DETERMINISTIC_WITH_GATE",
+    "B4_LLM_WITH_GATE",
+    "B5_FULL_WITH_EXPERIENCE"
+  ],
+  "completed": [
+    {
+      "profile": "standard",
+      "mode": "B0_NATIVE",
+      "evidence": "artifacts/experiments/commercebench-standard-b0_native-trials.jsonl",
+      "classification": "INVALID_NONAUTHORITATIVE_R28_RUN"
+    },
+    {
+      "profile": "standard",
+      "mode": "B1_DETERMINISTIC_NO_GATE",
+      "evidence": "artifacts/experiments/commercebench-standard-b1_deterministic_no_gate-trials.jsonl",
+      "classification": "INVALID_NONAUTHORITATIVE_R28_RUN"
+    },
+    {
+      "profile": "standard",
+      "mode": "B2_LLM_RANK_NO_GATE",
+      "evidence": "artifacts/experiments/commercebench-standard-b2_llm_rank_no_gate-trials.jsonl",
+      "classification": "INVALID_NONAUTHORITATIVE_R28_RUN"
+    },
+    {
+      "profile": "standard",
+      "mode": "B3_DETERMINISTIC_WITH_GATE",
+      "evidence": "artifacts/experiments/commercebench-standard-b3_deterministic_with_gate-trials.jsonl",
+      "classification": "INVALID_NONAUTHORITATIVE_R28_RUN"
+    },
+    {
+      "profile": "standard",
+      "mode": "B4_LLM_WITH_GATE",
+      "evidence": "artifacts/experiments/commercebench-standard-b4_llm_with_gate-trials.jsonl",
+      "classification": "INVALID_NONAUTHORITATIVE_R28_RUN"
+    },
+    {
+      "profile": "standard",
+      "mode": "B5_FULL_WITH_EXPERIENCE",
+      "evidence": "artifacts/experiments/commercebench-standard-b5_full_with_experience-trials.jsonl",
+      "classification": "INVALID_NONAUTHORITATIVE_R28_RUN"
+    },
+    {
+      "profile": "publication",
+      "mode": "B0_NATIVE",
+      "evidence": "artifacts/experiments/commercebench-publication-b0_native-trials.jsonl",
+      "classification": "INVALID_NONAUTHORITATIVE_R28_RUN"
+    },
+    {
+      "profile": "publication",
+      "mode": "B1_DETERMINISTIC_NO_GATE",
+      "evidence": "artifacts/experiments/commercebench-publication-b1_deterministic_no_gate-trials.jsonl",
+      "classification": "INVALID_NONAUTHORITATIVE_R28_RUN"
+    },
+    {
+      "profile": "publication",
+      "mode": "B2_LLM_RANK_NO_GATE",
+      "evidence": "artifacts/experiments/commercebench-publication-b2_llm_rank_no_gate-trials.jsonl",
+      "classification": "INVALID_NONAUTHORITATIVE_R28_RUN"
+    },
+    {
+      "profile": "publication",
+      "mode": "B3_DETERMINISTIC_WITH_GATE",
+      "evidence": "artifacts/experiments/commercebench-publication-b3_deterministic_with_gate-trials.jsonl",
+      "classification": "INVALID_NONAUTHORITATIVE_R28_RUN"
+    },
+    {
+      "profile": "publication",
+      "mode": "B4_LLM_WITH_GATE",
+      "evidence": "artifacts/experiments/commercebench-publication-b4_llm_with_gate-trials.jsonl",
+      "classification": "INVALID_NONAUTHORITATIVE_R28_RUN"
+    },
+    {
+      "profile": "publication",
+      "mode": "B5_FULL_WITH_EXPERIENCE",
+      "evidence": "artifacts/experiments/commercebench-publication-b5_full_with_experience-trials.jsonl",
+      "classification": "INVALID_NONAUTHORITATIVE_R28_RUN"
+    }
+  ],
+  "errors": [],
+  "safetybench": [
+    "artifacts/experiments/safetybench.json"
+  ],
+  "nosqlbench": [
+    "artifacts/experiments/nosqlbench_smoke.json"
+  ],
+  "finished_at": "2026-09-21T17:06:03.700614Z",
+  "classification": "INVALID_NONAUTHORITATIVE_R28_RUN",
+  "invalidated_at": "2026-09-22T14:00:59.202336+00:00",
+  "invalid_reasons": [
+    "publication_seconds_treated_as_operation_counts",
+    "b0_b5_behavioral_modes_not_wired",
+    "required_aa_calibration_absent",
+    "required_candidate_pair_sampling_absent"
+  ]
+}

@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="540">
+<text x="20" y="30" font-family="monospace" font-size="16">R28 p99 latency change (candidate vs baseline)</text>
+<text x="20" y="74" font-family="monospace" font-size="12">commercebench-r28a-standard-b0_native</text>
+<rect x="220" y="60" width="36.2" height="20" fill="#c62828"/>
+<text x="264.2" y="74" font-family="monospace" font-size="12">+7.233%</text>
+<text x="20" y="114" font-family="monospace" font-size="12">commercebench-r28a-standard-b1_deterministic_no_gate</text>
+<rect x="220" y="100" width="468.6" height="20" fill="#2e7d32"/>
+<text x="696.6" y="114" font-family="monospace" font-size="12">-93.711%</text>
+<text x="20" y="154" font-family="monospace" font-size="12">commercebench-r28a-standard-b2_llm_rank_no_gate</text>
+<rect x="220" y="140" width="377.5" height="20" fill="#2e7d32"/>
+<text x="605.5" y="154" font-family="monospace" font-size="12">-75.494%</text>
+<text x="20" y="194" font-family="monospace" font-size="12">commercebench-r28a-standard-b3_deterministic_with_gate</text>
+<rect x="220" y="180" width="475.8" height="20" fill="#2e7d32"/>
+<text x="703.8" y="194" font-family="monospace" font-size="12">-95.154%</text>
+<text x="20" y="234" font-family="monospace" font-size="12">commercebench-r28a-standard-b4_llm_with_gate</text>
+<rect x="220" y="220" width="464.9" height="20" fill="#2e7d32"/>
+<text x="692.9" y="234" font-family="monospace" font-size="12">-92.974%</text>
+<text x="20" y="274" font-family="monospace" font-size="12">commercebench-r28a-standard-b5_full_with_experience</text>
+<rect x="220" y="260" width="487.1" height="20" fill="#2e7d32"/>
+<text x="715.1" y="274" font-family="monospace" font-size="12">-97.418%</text>
+<text x="20" y="314" font-family="monospace" font-size="12">commercebench-r28b-publication-b0_native</text>
+<rect x="220" y="300" width="1.2" height="20" fill="#c62828"/>
+<text x="229.2" y="314" font-family="monospace" font-size="12">+0.244%</text>
+<text x="20" y="354" font-family="monospace" font-size="12">commercebench-r28b-publication-b1_deterministic_no_gate</text>
+<rect x="220" y="340" width="273.2" height="20" fill="#2e7d32"/>
+<text x="501.2" y="354" font-family="monospace" font-size="12">-54.639%</text>
+<text x="20" y="394" font-family="monospace" font-size="12">commercebench-r28b-publication-b2_llm_rank_no_gate</text>
+<rect x="220" y="380" width="272.2" height="20" fill="#2e7d32"/>
+<text x="500.2" y="394" font-family="monospace" font-size="12">-54.435%</text>
+<text x="20" y="434" font-family="monospace" font-size="12">commercebench-r28b-publication-b3_deterministic_with_gate</text>
+<rect x="220" y="420" width="268.6" height="20" fill="#2e7d32"/>
+<text x="496.6" y="434" font-family="monospace" font-size="12">-53.722%</text>
+<text x="20" y="474" font-family="monospace" font-size="12">commercebench-r28b-publication-b4_llm_with_gate</text>
+<rect x="220" y="460" width="329.9" height="20" fill="#2e7d32"/>
+<text x="557.9" y="474" font-family="monospace" font-size="12">-65.980%</text>
+<text x="20" y="514" font-family="monospace" font-size="12">commercebench-r28b-publication-b5_full_with_experience</text>
+<rect x="220" y="500" width="269.6" height="20" fill="#2e7d32"/>
+<text x="497.6" y="514" font-family="monospace" font-size="12">-53.920%</text>
+</svg>

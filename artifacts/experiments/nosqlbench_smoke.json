@@ -1,0 +1,6 @@
+{
+  "returncode": 1,
+  "stdout": "",
+  "stderr": "error while interpolating services.api.environment.JWT_SIGNING_KEY: required variable JWT_SIGNING_KEY is missing a value: Set JWT_SIGNING_KEY in your environment or .env file\n",
+  "finished_at": "2026-09-21T17:06:03.699469Z"
+}

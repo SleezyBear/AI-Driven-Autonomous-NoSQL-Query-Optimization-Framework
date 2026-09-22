@@ -1,0 +1,26 @@
+{
+  "classification": "INVALID_NONAUTHORITATIVE_R28_RUN",
+  "invalidated_at": "2026-09-22T14:00:59.202711+00:00",
+  "reasons": [
+    "publication_seconds_treated_as_operation_counts",
+    "b0_b5_behavioral_modes_not_wired",
+    "required_aa_calibration_absent",
+    "required_candidate_pair_sampling_absent"
+  ],
+  "invalidated_experiments": [
+    "commercebench-publication-b0_native",
+    "commercebench-publication-b1_deterministic_no_gate",
+    "commercebench-publication-b2_llm_rank_no_gate",
+    "commercebench-publication-b3_deterministic_with_gate",
+    "commercebench-publication-b4_llm_with_gate",
+    "commercebench-publication-b5_full_with_experience",
+    "commercebench-standard-b0_native",
+    "commercebench-standard-b1_deterministic_no_gate",
+    "commercebench-standard-b2_llm_rank_no_gate",
+    "commercebench-standard-b3_deterministic_with_gate",
+    "commercebench-standard-b4_llm_with_gate",
+    "commercebench-standard-b5_full_with_experience"
+  ],
+  "raw_evidence_preserved": true,
+  "authoritative_replacement_prefix": "commercebench-r28a-"
+}

@@ -1,0 +1,62 @@
+[
+  {
+    "arm": "baseline",
+    "arm_order": "AB",
+    "dataset_fingerprint": "9f103bccb584a7152a3f2ad476a25c3aab784b0559c017f978726c0ab0b8dba2",
+    "environment": {
+      "mongodb_version": "8.0.29",
+      "replica_set": "rs-evaluation"
+    },
+    "generator_version": "2",
+    "initial_dataset_fingerprint": "9f103bccb584a7152a3f2ad476a25c3aab784b0559c017f978726c0ab0b8dba2",
+    "measurement": {
+      "counter_deltas": {
+        "cpu_utilization": 0.0,
+        "disk_io_bytes_per_op": 1.0583333333333333,
+        "disk_utilization": 0.0,
+        "memory_utilization": 0.0,
+        "network_bytes_per_op": 1563.25
+      },
+      "elapsed_seconds": 4.860548034019303,
+      "error_count": 0,
+      "p50_latency_ms": 2.640982493176125,
+      "p95_latency_ms": 171.19834474724485,
+      "p99_latency_ms": 355.6467279719077,
+      "successful_operations": 120,
+      "throughput_successful_ops_per_second": 24.6885740373538,
+      "timeout_count": 0
+    },
+    "pair_id": "commercebench-publication-b2_llm_rank_no_gate",
+    "seed": 42
+  },
+  {
+    "arm": "candidate",
+    "arm_order": "AB",
+    "dataset_fingerprint": "9f103bccb584a7152a3f2ad476a25c3aab784b0559c017f978726c0ab0b8dba2",
+    "environment": {
+      "mongodb_version": "8.0.29",
+      "replica_set": "rs-evaluation"
+    },
+    "generator_version": "2",
+    "initial_dataset_fingerprint": "9f103bccb584a7152a3f2ad476a25c3aab784b0559c017f978726c0ab0b8dba2",
+    "measurement": {
+      "counter_deltas": {
+        "cpu_utilization": 0.0,
+        "disk_io_bytes_per_op": 1.075,
+        "disk_utilization": 0.0,
+        "memory_utilization": 0.0,
+        "network_bytes_per_op": 1644.8083333333334
+      },
+      "elapsed_seconds": 4.444774200004758,
+      "error_count": 0,
+      "p50_latency_ms": 2.4839900142978877,
+      "p95_latency_ms": 171.0865918576019,
+      "p99_latency_ms": 183.55958578758873,
+      "successful_operations": 120,
+      "throughput_successful_ops_per_second": 26.997996883592318,
+      "timeout_count": 0
+    },
+    "pair_id": "commercebench-publication-b2_llm_rank_no_gate",
+    "seed": 42
+  }
+]

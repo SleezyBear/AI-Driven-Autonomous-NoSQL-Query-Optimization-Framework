@@ -1,0 +1,15 @@
+{
+  "classification": "INVALID_SUPERSEDED_RESET_IMPLEMENTATION",
+  "invalid_reasons": [
+    "superseded_by_verified_equivalent_faster_reset"
+  ],
+  "superseded_at": "2026-09-22T14:00:59.294153+00:00",
+  "hashes": {
+    "SUPERSEDED.json": "c34d4e7118ba807c10a4ca675f9b54cdb8aff935531f73c9cfbc64e3affb3c05",
+    "dataset.json": "1130113fd4ac07f5bc2a1ce494b0349aa953fe32091b57f9e6631d31e52cb9fe",
+    "pairs/commercebench-r28a-publication-b0_native-aa-01.jsonl": "2b8ba0d6876c3e0dee5a19f376844c21dbf577e52ff01a5d790f3e71cd4bf65f",
+    "pairs/commercebench-r28a-publication-b0_native-aa-02.jsonl": "63f572c1c2efac848312de2e303021ee0ad61df97e02395a7f5d07a71503014a",
+    "pairs/commercebench-r28a-publication-b0_native-aa-03.jsonl": "7b293cf7d85ac29bdb4990475cb5513298fcd38b4f6a597ab7216354217f5aed",
+    "plan.json": "b74727ab39c7e44ae0e01ab5217f1c771aac1e8766bc6a8d27aac1216f4cff82"
+  }
+}

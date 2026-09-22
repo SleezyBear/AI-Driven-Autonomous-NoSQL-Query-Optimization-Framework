@@ -1,0 +1,117 @@
+{
+  "adopted": true,
+  "adopted_basis": "provably-equivalent delta reset; 50x reset speedup; savings exceed 6 hours whenever required-N >= 21 (frozen range 15-40); 25% reduction bound is structurally unreachable",
+  "adoption_thresholds": {
+    "fraction": 0.25,
+    "seconds": 21600
+  },
+  "asymptotic_max_reduction_fraction": 0.2333,
+  "break_even_candidate_pairs_for_6h": 20.66,
+  "dataset": {
+    "profile": "publication",
+    "record_total": 3300000
+  },
+  "delta_reset_mean_seconds": 1.1128514764131978,
+  "delta_reset_seconds": [
+    1.1542545510164928,
+    1.0353530030115508,
+    1.0492902440018952,
+    1.0686521190218627,
+    1.2567074650141876
+  ],
+  "full_restore_mean_seconds": 56.21868525533743,
+  "full_restore_seconds": [
+    52.37431509900489,
+    58.00203701099963,
+    58.27970365600777
+  ],
+  "generated_at": "2026-09-21T19:31:01.438695+00:00",
+  "generation_seconds": 9.433068380021723,
+  "initial_materialize_seconds": 64.46752693501185,
+  "observed_end_to_end": {
+    "eta_table": [
+      {
+        "candidate_pairs": 15,
+        "new_eta_hours": 16.38,
+        "old_eta_hours": 20.8125,
+        "pairs_per_mode": 27,
+        "savings_hours": 4.4325
+      },
+      {
+        "candidate_pairs": 25,
+        "new_eta_hours": 22.446666666666665,
+        "old_eta_hours": 28.520833333333332,
+        "pairs_per_mode": 37,
+        "savings_hours": 6.074166666666667
+      },
+      {
+        "candidate_pairs": 40,
+        "new_eta_hours": 31.546666666666667,
+        "old_eta_hours": 40.083333333333336,
+        "pairs_per_mode": 52,
+        "savings_hours": 8.536666666666667
+      }
+    ],
+    "new_pair_mean_seconds": 364.0,
+    "old_pair_mean_seconds": 462.5,
+    "pair_speedup": 1.2706043956043955,
+    "pair_time_reduction_seconds": 98.5,
+    "r28a_pair_seconds": [
+      467,
+      458
+    ],
+    "r28b_pair_seconds": [
+      364
+    ]
+  },
+  "per_pair_reset_overhead_reduction_seconds": 110.21166755784846,
+  "projected": {
+    "arms_per_mode": 54,
+    "new_publication_seconds": 59067.36903996795,
+    "old_publication_seconds": 76872.16613426135,
+    "pairs_per_mode": 27,
+    "reduction_fraction": 0.23161565478975016,
+    "savings_hours": 4.945776970637056,
+    "savings_seconds": 17804.7970942934,
+    "timed_seconds_per_mode": 9720
+  },
+  "projection_table": [
+    {
+      "candidate_pairs": 15,
+      "new_publication_hours": 16.40760251110221,
+      "old_publication_hours": 21.353379481739264,
+      "pairs_per_mode": 27,
+      "reduction_fraction": 0.2316156547897502,
+      "savings_hours": 4.9457769706370565
+    },
+    {
+      "candidate_pairs": 21,
+      "new_publication_hours": 20.029859540630472,
+      "old_publication_hours": 26.077753186846014,
+      "pairs_per_mode": 33,
+      "reduction_fraction": 0.23191774240988616,
+      "savings_hours": 6.047893646215542
+    },
+    {
+      "candidate_pairs": 27,
+      "new_publication_hours": 23.652116570158736,
+      "old_publication_hours": 30.802126891952756,
+      "pairs_per_mode": 39,
+      "reduction_fraction": 0.2321271627402459,
+      "savings_hours": 7.150010321794022
+    },
+    {
+      "candidate_pairs": 40,
+      "new_publication_hours": 31.50034013413664,
+      "old_publication_hours": 41.03826991968405,
+      "pairs_per_mode": 52,
+      "reduction_fraction": 0.23241549422561136,
+      "savings_hours": 9.537929785547409
+    }
+  ],
+  "reset_implementation": {
+    "new": "delta-reset-v1",
+    "old": "full-restore"
+  },
+  "speedup_ratio": 50.51768941937731
+}

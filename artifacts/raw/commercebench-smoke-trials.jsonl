@@ -1,0 +1,62 @@
+[
+  {
+    "arm": "baseline",
+    "arm_order": "AB",
+    "dataset_fingerprint": "1e856908b86bb77f0ff4137e7d28a83be37d70ee9e653118004760866afe56b8",
+    "environment": {
+      "mongodb_version": "8.0.29",
+      "replica_set": "rs-evaluation"
+    },
+    "generator_version": "2",
+    "initial_dataset_fingerprint": "1e856908b86bb77f0ff4137e7d28a83be37d70ee9e653118004760866afe56b8",
+    "measurement": {
+      "counter_deltas": {
+        "cpu_utilization": 0.0,
+        "disk_io_bytes_per_op": 1.02,
+        "disk_utilization": 0.0,
+        "memory_utilization": 0.0,
+        "network_bytes_per_op": 2793.68
+      },
+      "elapsed_seconds": 0.10534795402782038,
+      "error_count": 0,
+      "p50_latency_ms": 1.5650964924134314,
+      "p95_latency_ms": 3.8129587963339873,
+      "p99_latency_ms": 4.601788420986847,
+      "successful_operations": 50,
+      "throughput_successful_ops_per_second": 474.6176654441334,
+      "timeout_count": 0
+    },
+    "pair_id": "commercebench-smoke-001",
+    "seed": 42
+  },
+  {
+    "arm": "candidate",
+    "arm_order": "AB",
+    "dataset_fingerprint": "1e856908b86bb77f0ff4137e7d28a83be37d70ee9e653118004760866afe56b8",
+    "environment": {
+      "mongodb_version": "8.0.29",
+      "replica_set": "rs-evaluation"
+    },
+    "generator_version": "2",
+    "initial_dataset_fingerprint": "1e856908b86bb77f0ff4137e7d28a83be37d70ee9e653118004760866afe56b8",
+    "measurement": {
+      "counter_deltas": {
+        "cpu_utilization": 0.0,
+        "disk_io_bytes_per_op": 1.02,
+        "disk_utilization": 0.0,
+        "memory_utilization": 0.0,
+        "network_bytes_per_op": 2793.9
+      },
+      "elapsed_seconds": 0.07869090200983919,
+      "error_count": 0,
+      "p50_latency_ms": 1.4592190127586946,
+      "p95_latency_ms": 2.2479593462776393,
+      "p99_latency_ms": 2.9968806690885663,
+      "successful_operations": 50,
+      "throughput_successful_ops_per_second": 635.3974693764243,
+      "timeout_count": 0
+    },
+    "pair_id": "commercebench-smoke-001",
+    "seed": 42
+  }
+]

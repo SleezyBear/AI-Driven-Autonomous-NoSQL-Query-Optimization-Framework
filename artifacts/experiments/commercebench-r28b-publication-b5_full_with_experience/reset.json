@@ -1,0 +1,12 @@
+{
+  "environment": {
+    "mongodb_version": "8.0.29",
+    "replica_set": "rs-evaluation"
+  },
+  "provenance": {
+    "dirty": "M .gitignore\n M Makefile\n M benchmarks/commercebench/workloads.py\n M benchmarks/mongodb_executor.py\n M scripts/run_commercebench_smoke.py\n?? artifacts/\n?? backend/tests/r28/\n?? benchmarks/ablations.py\n?? benchmarks/commercebench/validation.py\n?? benchmarks/evidence.py\n?? benchmarks/orchestration.py\n?? benchmarks/publication.py\n?? benchmarks/r28_runner.py\n?? benchmarks/reset.py\n?? docs/R28_EXECUTION_HANDOFF.md\n?? scripts/benchmark_reset.py\n?? scripts/check_r28_authoritative_evidence.py\n?? scripts/experiment_orchestrator.py\n?? scripts/generate_exports.py\n?? scripts/invalidate_r28_evidence.py\n?? scripts/invalidate_r28a_publication.py\n?? scripts/publication_repro.py\n?? scripts/run_commercebench_profile.py\n?? scripts/supervisor.py\n?? scripts/verify_r28_preflight.py",
+    "revision": "d471465b375f5c924309479084b4ccfb6a6aa0cb"
+  },
+  "reset_implementation": "delta",
+  "reset_version": "delta-reset-v1"
+}

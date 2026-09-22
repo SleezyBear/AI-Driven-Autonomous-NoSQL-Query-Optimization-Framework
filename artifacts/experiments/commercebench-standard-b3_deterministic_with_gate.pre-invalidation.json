@@ -1,0 +1,14 @@
+{
+  "experiment_id": "commercebench-standard-b3_deterministic_with_gate",
+  "profile": "standard",
+  "mode": "B3_DETERMINISTIC_WITH_GATE",
+  "mongo_uri": "mongodb://control_plane_root:control_plane_root_dev_only@127.0.0.1:27018/?authSource=admin&directConnection=true",
+  "created_at": "2026-09-21T16:52:13.461609Z",
+  "status": "COMPLETED",
+  "command": ".venv_r28/bin/python scripts/run_commercebench_profile.py --profile standard --uri mongodb://control_plane_root:control_plane_root_dev_only@127.0.0.1:27018/?authSource=admin&directConnection=true --output artifacts/experiments/commercebench-standard-b3_deterministic_with_gate-trials.jsonl --pair-id commercebench-standard-b3_deterministic_with_gate --arm-order AB",
+  "started_at": "2026-09-21T16:52:13.462322Z",
+  "finished_at": "2026-09-21T16:52:40.353297Z",
+  "returncode": 0,
+  "stdout": "evidence=artifacts/experiments/commercebench-standard-b3_deterministic_with_gate-trials.jsonl\n",
+  "stderr": ""
+}

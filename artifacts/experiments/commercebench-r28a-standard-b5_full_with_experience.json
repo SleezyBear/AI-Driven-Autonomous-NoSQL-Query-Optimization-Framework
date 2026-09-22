@@ -1,0 +1,29 @@
+{
+  "command": [
+    "/Users/mac/dev/AI-Driven-Autonomous-NoSQL-Query-Optimization-Framework/nosql/bin/python",
+    "scripts/run_commercebench_profile.py",
+    "--profile",
+    "standard",
+    "--mode",
+    "B5_FULL_WITH_EXPERIENCE",
+    "--uri",
+    "mongodb://control_plane_root:control_plane_root_dev_only@127.0.0.1:27018/?authSource=admin&directConnection=true",
+    "--output",
+    "artifacts/experiments/commercebench-r28a-standard-b5_full_with_experience-trials.jsonl",
+    "--pair-id",
+    "commercebench-r28a-standard-b5_full_with_experience"
+  ],
+  "evidence": "artifacts/experiments/commercebench-r28a-standard-b5_full_with_experience-trials.jsonl",
+  "failure_reason": null,
+  "finished_at": "2026-09-21T18:41:51.885706+00:00",
+  "kind": "commercebench",
+  "mode": "B5_FULL_WITH_EXPERIENCE",
+  "name": "commercebench-r28a-standard-b5_full_with_experience",
+  "profile": "standard",
+  "required": true,
+  "returncode": 0,
+  "started_at": "2026-09-21T18:40:11.610516+00:00",
+  "status": "PASSED",
+  "stderr_log": "artifacts/experiments/commercebench-r28a-standard-b5_full_with_experience.stderr.log",
+  "stdout_log": "artifacts/experiments/commercebench-r28a-standard-b5_full_with_experience.stdout.log"
+}

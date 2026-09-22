@@ -1,0 +1,12 @@
+{
+  "candidates": [],
+  "deterministic_candidates": false,
+  "experience_invoked": false,
+  "experience_memory": false,
+  "llm_ranking": false,
+  "mode": "B0_NATIVE",
+  "ranking_order": [],
+  "safety_gate": false,
+  "sandbox_only": true,
+  "selected_index": null
+}

@@ -1,0 +1,21 @@
+{
+  "command": [
+    "/Users/mac/dev/AI-Driven-Autonomous-NoSQL-Query-Optimization-Framework/nosql/bin/python",
+    "-m",
+    "pytest",
+    "backend/tests/safetybench"
+  ],
+  "evidence": "artifacts/experiments/safetybench-r28a.json",
+  "failure_reason": null,
+  "finished_at": "2026-09-21T18:43:06.574615+00:00",
+  "kind": "safetybench",
+  "mode": null,
+  "name": "safetybench-r28a",
+  "profile": null,
+  "required": true,
+  "returncode": 0,
+  "started_at": "2026-09-21T18:43:05.687162+00:00",
+  "status": "PASSED",
+  "stderr_log": "artifacts/experiments/safetybench-r28a.stderr.log",
+  "stdout_log": "artifacts/experiments/safetybench-r28a.stdout.log"
+}

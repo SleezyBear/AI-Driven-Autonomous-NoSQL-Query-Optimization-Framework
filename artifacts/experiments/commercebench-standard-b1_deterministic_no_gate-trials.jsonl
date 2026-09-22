@@ -1,0 +1,62 @@
+[
+  {
+    "arm": "baseline",
+    "arm_order": "AB",
+    "dataset_fingerprint": "c1c16b36c3290276df9e495a20b585dfab57f29572caba401c0b972ab7312cd5",
+    "environment": {
+      "mongodb_version": "8.0.29",
+      "replica_set": "rs-evaluation"
+    },
+    "generator_version": "2",
+    "initial_dataset_fingerprint": "c1c16b36c3290276df9e495a20b585dfab57f29572caba401c0b972ab7312cd5",
+    "measurement": {
+      "counter_deltas": {
+        "cpu_utilization": 0.0,
+        "disk_io_bytes_per_op": 1.025,
+        "disk_utilization": 0.0,
+        "memory_utilization": 0.0,
+        "network_bytes_per_op": 1155.065
+      },
+      "elapsed_seconds": 2.22437068700674,
+      "error_count": 0,
+      "p50_latency_ms": 2.7454994997242466,
+      "p95_latency_ms": 36.24631072452758,
+      "p99_latency_ms": 55.91153905290411,
+      "successful_operations": 200,
+      "throughput_successful_ops_per_second": 89.91307121976743,
+      "timeout_count": 0
+    },
+    "pair_id": "commercebench-standard-b1_deterministic_no_gate",
+    "seed": 42
+  },
+  {
+    "arm": "candidate",
+    "arm_order": "AB",
+    "dataset_fingerprint": "c1c16b36c3290276df9e495a20b585dfab57f29572caba401c0b972ab7312cd5",
+    "environment": {
+      "mongodb_version": "8.0.29",
+      "replica_set": "rs-evaluation"
+    },
+    "generator_version": "2",
+    "initial_dataset_fingerprint": "c1c16b36c3290276df9e495a20b585dfab57f29572caba401c0b972ab7312cd5",
+    "measurement": {
+      "counter_deltas": {
+        "cpu_utilization": 0.0,
+        "disk_io_bytes_per_op": 1.06,
+        "disk_utilization": 0.0,
+        "memory_utilization": 0.0,
+        "network_bytes_per_op": 1233.19
+      },
+      "elapsed_seconds": 2.2309246940130834,
+      "error_count": 0,
+      "p50_latency_ms": 2.927047506091185,
+      "p95_latency_ms": 38.95288580679335,
+      "p99_latency_ms": 40.468554231047165,
+      "successful_operations": 200,
+      "throughput_successful_ops_per_second": 89.6489247426059,
+      "timeout_count": 0
+    },
+    "pair_id": "commercebench-standard-b1_deterministic_no_gate",
+    "seed": 42
+  }
+]

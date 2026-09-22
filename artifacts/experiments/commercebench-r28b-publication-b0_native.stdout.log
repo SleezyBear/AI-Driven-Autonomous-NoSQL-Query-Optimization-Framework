@@ -1,0 +1,3 @@
+evidence=artifacts/experiments/commercebench-r28b-publication-b0_native
+sampling_status=INCONCLUSIVE_NOISE
+admission={'status': 'INCONCLUSIVE_NOISE', 'reason_codes': ['AA_CALIBRATION_EXCEEDS_PROFILE_MAXIMUM']}
