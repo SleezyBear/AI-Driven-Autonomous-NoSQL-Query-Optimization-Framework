@@ -8,7 +8,9 @@ This isn't "ask an LLM to write you an index." It's a control plane that sits ne
 
 ## 🧑‍🎓 The 5-minute crash course (start here if you're new to any of this)
 
-**The problem, in plain English:** every query your app sends to MongoDB has to find matching documents somehow. Without help, the database checks *every single document* — a "collection scan." That's fine at 100 documents, brutal at 100 million. The fix is an **index**: a pre-sorted lookup structure (think the index at the back of a textbook) that lets the database jump straight to what it needs. The catch is that indexes aren't free — the wrong one wastes memory and slows down writes, and picking the *right* one for a given query shape requires actually understanding what your app is asking for and how often.
+**The problem, in plain English:** every query your app sends to MongoDB has to find matching documents somehow. Without help, the database checks *every single document* — a "collection scan." That's fine at 100 documents, brutal at 100 million.
+
+Indexes are the solution. An index is like the index at the back of a textbook: instead of reading every page to find a topic, MongoDB can use the index to jump much closer to the documents it needs. But indexes aren't free. They consume memory and storage, and they add overhead to inserts and updates. Worse, the wrong index can provide little benefit while still imposing that cost. So the real challenge isn't simply "add an index" — it's understanding what queries the application actually runs, how frequently they run, and which index structures are worth maintaining for them.
 
 **Why this is a real, ongoing headache:** query patterns drift as an app grows. Nobody sits down every week to re-audit every collection's indexes against real traffic. So databases quietly accumulate slow queries, redundant indexes, and missed opportunities — and most teams only notice when something's already on fire in production.
 
@@ -27,13 +29,17 @@ In short: it automates the "notice → diagnose → propose → test → ship sa
 
 Every optimization travels down the same fixed 17-stage rail, every single time:
 
+```mermaid
+flowchart LR
+    A[CREATED] --> B[SNAPSHOTTING] --> C[DIAGNOSING] --> D[GENERATING_CANDIDATES] --> E[RANKING]
+    E --> F[CALIBRATING] --> G[EVALUATING] --> H[ADMISSION] --> I[ADMITTED]
+    I --> J[APPROVAL_PENDING] --> K[APPROVED] --> L[DEPLOYING] --> M[DEPLOYED] --> N[MONITORING] --> O[COMPLETED]
+    M --> P[ROLLED_BACK]
+    M --> Q[ROLLBACK_BLOCKED]
+    N --> P
+    N --> Q
 ```
-CREATED → SNAPSHOTTING → DIAGNOSING → GENERATING_CANDIDATES → RANKING
-        → CALIBRATING → EVALUATING → ADMISSION → ADMITTED
-        → APPROVAL_PENDING → APPROVED → DEPLOYING → DEPLOYED
-        → MONITORING → COMPLETED
-                     ↘ ROLLED_BACK / ROLLBACK_BLOCKED / FAILED (any gate)
-```
+*(Any stage can also drop straight to `FAILED` — omitted above to keep it readable.)*
 
 The AI gets a say at exactly two of those stages — `DIAGNOSING` and `RANKING`. It doesn't get a vote on whether a candidate is *allowed to exist*, whether it *actually helped*, or whether it's *safe to ship*. That's all deterministic code with no vibes to appeal to.
 
