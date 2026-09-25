@@ -76,7 +76,7 @@ The AI gets a say at exactly two of those stages — `DIAGNOSING` and `RANKING`.
 | **Control-plane API** | FastAPI + PostgreSQL (async SQLAlchemy, Alembic) | Source of truth for runs, approvals, the ledger, auth |
 | **Worker** | Async Python | Actually runs the diagnosis→admission→deploy pipeline |
 | **Target datastore** | MongoDB replica set | What's being optimized — touched only through a typed adapter, never a shell command |
-| **AI provider** | Ollama (chat + embedding model) | Diagnosis and ranking, always evidence-grounded |
+| **AI provider** | Ollama (`gemma4:e4b` chat + `embeddinggemma` embeddings, both swappable) | Diagnosis and ranking, always evidence-grounded |
 | **Frontend** | React + TypeScript + Vite + Tailwind | Dashboards for runs, targets, workloads, approvals |
 | **Glue** | Docker Compose profiles (`light`, `replica-test`, `paper`) | Reproducible environments |
 
@@ -108,7 +108,23 @@ scripts/              ← bootstrap, demo mode, acceptance automation
 
 ## 🚀 Getting it running
 
-Prereqs: Docker, Python 3.12, and [Ollama](https://ollama.com) running locally with a chat + embedding model pulled.
+Prereqs: Docker, Python 3.12, and [Ollama](https://ollama.com) running locally, with these two models pulled:
+
+```bash
+ollama pull gemma4:e4b          # chat model — does diagnosis + ranking
+ollama pull embeddinggemma       # embedding model — powers the experience-memory lookup
+```
+
+These are the defaults (`gemma4:e4b` / `embeddinggemma`), wired in via `OLLAMA_CHAT_MODEL` and `OLLAMA_EMBEDDING_MODEL`. Want to use different models? Two things to know first:
+
+- **Swapping the chat model is easy** — just set `OLLAMA_CHAT_MODEL` in `.env` to any model you've pulled (`ollama pull <name>`). No code changes needed.
+- **Swapping the embedding model needs a matching vector size.** The experience-memory store is hardcoded to 768-dimensional vectors (`EMBEDDING_DIMENSIONS = 768` in `backend/app/experience/memory.py`, and the pgvector column in `backend/app/db/models.py`). `embeddinggemma` happens to output 768 dims. If you switch to a model with a different output size, you'll need to update `EMBEDDING_DIMENSIONS` and the `Vector(768)` column definition (plus a matching Alembic migration) to match, or the embedding calls will fail validation.
+
+```bash
+# in .env
+OLLAMA_CHAT_MODEL=your-model-name
+OLLAMA_EMBEDDING_MODEL=your-embedding-model-name   # only if it's also 768-dim
+```
 
 **Intel Mac**
 ```bash
