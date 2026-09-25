@@ -6,6 +6,23 @@ This isn't "ask an LLM to write you an index." It's a control plane that sits ne
 
 ---
 
+## 🧑‍🎓 The 5-minute crash course (start here if you're new to any of this)
+
+**The problem, in plain English:** every query your app sends to MongoDB has to find matching documents somehow. Without help, the database checks *every single document* — a "collection scan." That's fine at 100 documents, brutal at 100 million. The fix is an **index**: a pre-sorted lookup structure (think the index at the back of a textbook) that lets the database jump straight to what it needs. The catch is that indexes aren't free — the wrong one wastes memory and slows down writes, and picking the *right* one for a given query shape requires actually understanding what your app is asking for and how often.
+
+**Why this is a real, ongoing headache:** query patterns drift as an app grows. Nobody sits down every week to re-audit every collection's indexes against real traffic. So databases quietly accumulate slow queries, redundant indexes, and missed opportunities — and most teams only notice when something's already on fire in production.
+
+**What this project actually does about it:**
+1. Watches your real query traffic and figures out which query shapes are slow or expensive (the **diagnosis**).
+2. Mechanically works out which indexes would help, using well-established rules — no guessing (the **candidates**).
+3. Actually tests those candidates against a sandboxed copy of your real data, measuring the real before/after impact, instead of assuming (the **evaluation**).
+4. Only proposes a change once it's *measurably* better — and requires it to prove that again if anything changes before you hit approve (the **admission + approval**).
+5. Ships the change through a fully logged, reversible pipeline, so if something ever does go sideways, there's a one-click undo and a paper trail explaining exactly what happened and why (the **deployment + ledger**).
+
+In short: it automates the "notice → diagnose → propose → test → ship safely" loop that a good DBA does by hand, using an LLM for the "notice/propose" creative part and hard, deterministic engineering for every part where being wrong would actually cost you something.
+
+---
+
 ## 🎭 The pitch, minus the marketing
 
 Every optimization travels down the same fixed 17-stage rail, every single time:
@@ -85,98 +102,68 @@ scripts/              ← bootstrap, demo mode, acceptance automation
 
 ## 🚀 Getting it running
 
-Heads up: the repo's own `bootstrap.sh` is written for **macOS on Intel**, and it hard-fails on anything else. The good news is that everything past "get a Python interpreter and Docker" is just Docker Compose — so here's the honest setup path per platform.
+Prereqs: Docker, Python 3.12, and [Ollama](https://ollama.com) running locally with a chat + embedding model pulled.
 
-### Everyone, first — grab these
-
-- Docker Desktop (or Docker Engine + Compose on Linux)
-- Python 3.12 (any interpreter — the secret-generation scripts are pure stdlib, no venv required just to get going)
-- [Ollama](https://ollama.com), running locally, with a chat model and an embedding model pulled (defaults in `.env.example` are `gemma4:e4b` and `embeddinggemma`)
-
-Then, from the repo root, the shared steps are the same everywhere:
-
+**Intel Mac**
 ```bash
-cp .env.example .env                # set a real JWT_SIGNING_KEY in here
+./scripts/bootstrap.sh
+source nosql/bin/activate
+cp .env.example .env
+mkdir -p .secrets
+python3 scripts/generate_master_key.py --output .secrets/control_plane_master_key
+python3 scripts/generate_mongodb_keyfile.py --output .secrets/mongodb_replica_keyfile
+make dev
+```
+
+**Apple Silicon Mac / Linux**
+```bash
+cp .env.example .env
 mkdir -p .secrets
 python3 scripts/generate_master_key.py --output .secrets/control_plane_master_key
 python3 scripts/generate_mongodb_keyfile.py --output .secrets/mongodb_replica_keyfile
 docker compose --profile light up -d
 ```
 
-That's it — API, worker, Postgres, two Mongo targets, and the frontend all come up. What differs per platform is just *how you get there*:
-
-<details>
-<summary><b>🍎 Intel Mac</b></summary>
-
-You're the officially supported path. You can use the repo's own bootstrap for the extras (a project-local `uv`-managed Python 3.12 venv, useful if you want to run the test suite or scripts outside Docker):
-
+**Windows**
 ```bash
-./scripts/bootstrap.sh
-source nosql/bin/activate
+wsl --install          # then run everything below inside that Ubuntu shell
+cp .env.example .env
+mkdir -p .secrets
+python3 scripts/generate_master_key.py --output .secrets/control_plane_master_key
+python3 scripts/generate_mongodb_keyfile.py --output .secrets/mongodb_replica_keyfile
+docker compose --profile light up -d
 ```
-Then run the shared steps above. `make dev` is shorthand for the same `docker compose --profile light up -d`.
-</details>
 
-<details>
-<summary><b>🍏 Apple Silicon (M-series) Mac</b></summary>
+That brings up the API, worker, Postgres, two Mongo targets, and the frontend at `http://localhost:5173`.
 
-`bootstrap.sh` will refuse to run (it checks `uname -m` for `x86_64`). Skip it and just run the shared steps above directly — Docker Desktop on Apple Silicon happily runs `linux/amd64` images under emulation, which is exactly what this compose file targets, so it works, just a bit slower on first pull/build. If you want the local dev venv too, drop the CPU-arch guard at the top of `scripts/bootstrap.sh` or set up `uv` and a Python 3.12 venv by hand.
-</details>
-
-<details>
-<summary><b>🐧 Linux</b></summary>
-
-Also not what `bootstrap.sh` expects, also not a real obstacle. Install Docker Engine + the Compose plugin, install Python 3.12 (or use `uv`) if you want the dev venv, and run the shared steps above. Everything's already `linux/amd64` native here, so this is arguably the smoothest path.
-</details>
-
-<details>
-<summary><b>🪟 Windows</b></summary>
-
-Use **WSL2** — run everything (Docker Desktop with the WSL2 backend, Python, Ollama or a `localhost` bridge to Windows-side Ollama) from inside a WSL2 Ubuntu shell and follow the Linux steps above. Running the Bash scripts and Compose directly from PowerShell isn't a supported path here.
-</details>
-
-### Take it for a spin (no real workload needed)
+### Take it for a spin
 
 ```bash
-make demo-reset      # clean slate
-make demo-start       # bring demo services up
-make demo-seed        # load sample data + query shapes
-make demo-workload    # generate traffic for the system to diagnose
+make demo-reset
+make demo-start
+make demo-seed
+make demo-workload
 ```
-Open the frontend (Vite default is `http://localhost:5173`) and watch a run crawl through the lifecycle in real time.
+Then open the frontend and watch a run move through the lifecycle live.
 
-### Or drive it straight from the API
+### Or drive it from the API directly
 
 ```bash
-# log in
 curl -X POST http://localhost:8000/auth/login -d '{"username": "...", "password": "..."}'
-
-# register a target
 curl -X POST http://localhost:8000/targets -H "Authorization: Bearer $TOKEN" -d '{ ... }'
-
-# start an optimization run against it
 curl -X POST http://localhost:8000/runs -H "Authorization: Bearer $TOKEN" -d '{ "target_id": "..." }'
-
-# check on it
 curl http://localhost:8000/runs/{run_id} -H "Authorization: Bearer $TOKEN"
-```
-
-If a run lands on `APPROVAL_PENDING`, review the evidence and:
-```bash
 curl -X POST http://localhost:8000/approvals/{approval_id}/approve -H "Authorization: Bearer $TOKEN"
-curl -X POST http://localhost:8000/approvals/{approval_id}/reject  -H "Authorization: Bearer $TOKEN"
 ```
-(Full-autonomous mode skips this only for index creation / query-hint actions — everything else always stops here.)
 
 ### Run the tests
 
 ```bash
-make test          # unit + integration
-make acceptance    # the broader gate
+make test
+make acceptance
 ```
-`backend/tests/` mirrors `backend/app/` module-for-module, so it doubles as a map of *how* each safety guarantee above is actually checked (`safetybench/adversarial.py` is worth a look if you want to see the adversarial-prompt tests).
 
-Before pointing any of this at a real production MongoDB: read `docs/RUNBOOK.md`. It's blunt about connection-pool math, migration locking, TLS requirements, and exactly what the system refuses to do during a Postgres or Mongo outage.
+Before pointing this at a real production MongoDB, read `docs/RUNBOOK.md`.
 
 ---
 
